@@ -12,6 +12,7 @@ load s = do contents <- readFile s
             putStrLn "Read map successfully!"
             putStrLn "Initial:"
             printMap map
+            start map
  
 ballPos :: [String] -> [(Int, Int)]
 ballPos m = [(x, y) | (x, line) <- zip [0..] m, y <- elemIndices '@' line] 
@@ -75,6 +76,41 @@ makeMove map command cell
             (x, y) = head (ballPos map)
             modifyRight = take x map ++ [(moveRight (map !! x) y cell)] ++ drop (x + 1) map
             modifyLeft  = take x map ++ [(moveLeft  (map !! x) y cell)] ++ drop (x + 1) map
+
+getDirections :: Int -> [String] -> IO [String]
+getDirections num ds = if (num == 0)
+                            then do putStr "First Direction: "
+                                    dir <- getLine
+                                    getDirections (num + 1) (ds ++ [dir])
+                            else do putStr "Next Direction: "
+                                    dir <- getLine
+                                    if (dir == "") 
+                                        then return ds
+                                        else getDirections (num + 1) (ds ++ [dir])
+
+play :: [String] -> [String] -> Char -> IO ()
+play _ [] _          = return ()
+play map (m:ms) cell = do let map' = makeMove map m cell
+                          if (map == map') 
+                              then do putStr "Sorry, error: cannot move to the "
+                                      putStrLn m
+                                      putStrLn "Your current board:"
+                                      printMap map
+                                    --   putStrLn "Please type 'play' to enter new directions:"
+                                    --   start map
+                              else do printMap map'
+                                      putStrLn ""
+                                      let (x, y) = head (ballPos map)
+                                      let newCell = (map' !! x) !! y
+                                      play map' ms newCell
+
+start :: [String] -> IO ()
+start map = do inp <- getLine
+               if (inp == "play") 
+                    then do moves <- getDirections 0 []
+                            play map moves '-'
+                    else do putStrLn "Invalid command."
+                            start map
 
 -- load
 -- check
