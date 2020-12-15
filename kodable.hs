@@ -101,9 +101,12 @@ makeMove map move nextMove cell
             moveIsColor = move `elem` ["p", "o", "y"]
 
 getNewCell :: [String] -> [String] -> Char
-getNewCell m m' = (m !! x) !! y
-               where
-                   (x, y) = head (ballPos m')
+getNewCell m m' = if (newCell == 'b')
+                    then '-'
+                    else newCell
+                  where
+                      (x, y) = head (ballPos m')
+                      newCell = (m !! x) !! y
 
 none :: String
 none = "none"
@@ -129,34 +132,33 @@ play map (move:nextMove:moves) cell = do let map' = makeMove map move nextMove c
                                                         else putStrLn ""
                                                     let newCell = getNewCell map map'
                                                     if (nextMove `elem` ["p", "o", "y"])
-                                                        then
-                                                            if [newCell] /= nextMove
+                                                        then if [newCell] /= nextMove
                                                                 then case nextMove of
-                                                                        "p" -> putStrLn ("Pink conditional never found")
-                                                                        "o" -> putStrLn ("Orange conditional never found")
-                                                                        "y" -> putStrLn ("Yellow conditional never found")
-                                                                else
-                                                                    play map' moves newCell
-                                                        else
-                                                            if (nextMove == none)
-                                                                then
-                                                                    if (newCell == 't')
-                                                                        then
-                                                                            putStrLn "YOU WON!"
-                                                                        else
-                                                                            putStrLn "YOU LOST."
-                                                                else
-                                                                    play map' (nextMove:moves) newCell
+                                                                    "p" -> putStrLn ("Pink conditional never found")
+                                                                    "o" -> putStrLn ("Orange conditional never found")
+                                                                    "y" -> putStrLn ("Yellow conditional never found")
+                                                                else play map' moves newCell
+                                                        else if (nextMove == none)
+                                                                then if (newCell == 't')
+                                                                        then putStrLn "YOU WON!"
+                                                                        else putStrLn "YOU LOST."
+                                                                else play map' (nextMove:moves) newCell
                                                     
 
 parseCond :: String -> [String]
 parseCond dir = [[dir !! 5]] ++ [tail (init (drop 7 dir))]
 
+parseLoop :: String -> [String]
+parseLoop dir = [[dir !! 5]] ++ [take idx directions] ++ [drop (idx + 1) directions]
+                where
+                    directions = init (drop 8 dir)
+                    idx        = head [y | (x, y) <- zip directions [0..], x == ',']
+
 parseDir :: String -> [String]
 parseDir dir
     | dir `elem` ["Right", "Up", "Down", "Left", "Function"] = [dir]
     | take 4 dir == "Cond" = parseCond dir
-    -- | take 4 dir == "Loop" = parseLoop dir
+    | take 4 dir == "Loop" = parseLoop dir
 
 -- Loop{n}{Direction,Direction}     n = [0,5]
 getDirections :: Int -> [String] -> IO [String]
