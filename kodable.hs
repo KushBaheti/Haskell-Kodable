@@ -98,6 +98,11 @@ getDirections num ds = if (num == 0)
                                         then return ds
                                         else getDirections (num + 1) (ds ++ [dir])
 
+getNewCell :: [String] -> [String] -> Char
+getNewCell m m' = (m !! x) !! y
+               where
+                   (x, y) = head (ballPos m')
+
 play :: [String] -> [String] -> Char -> IO ()
 play _ [] _          = return ()
 play map (m:ms) cell = do let map' = makeMove map m cell
@@ -116,8 +121,9 @@ play map (m:ms) cell = do let map' = makeMove map m cell
                                                   putStrLn (show (3 - length(newBonusCount)))
                                                   putStrLn ""
                                           else putStrLn ""
-                                      let (x, y) = head (ballPos map)
-                                      let newCell = (map' !! x) !! y
+                                    --   let (x, y) = head (ballPos map')
+                                    --   let newCell = (map !! x) !! y
+                                      let newCell = getNewCell map map'
                                       play map' ms newCell
 
 start :: [String] -> IO ()
