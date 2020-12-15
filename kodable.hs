@@ -30,6 +30,7 @@ moveRight :: String -> Int -> Char -> String
 moveRight r y c 
     | valid && next == '-' = moveRight (stepRight r y c) (y + 2) next
     | valid && next == 'b' = moveRight (stepRight r y c) (y + 2) '-'
+    -- | valid && next == 'p' = undefined -- check next command | if p -> execute next direction (return) else 
     | otherwise            = r
         where
             valid = (y + 2) < (length r)
@@ -87,17 +88,6 @@ makeMove map command cell
             modifyRight = take x map ++ [(moveRight (map !! x) y cell)] ++ drop (x + 1) map
             modifyLeft  = take x map ++ [(moveLeft  (map !! x) y cell)] ++ drop (x + 1) map
 
-getDirections :: Int -> [String] -> IO [String]
-getDirections num ds = if (num == 0)
-                            then do putStr "First Direction: "
-                                    dir <- getLine
-                                    getDirections (num + 1) (ds ++ [dir])
-                            else do putStr "Next Direction: "
-                                    dir <- getLine
-                                    if (dir == "") 
-                                        then return ds
-                                        else getDirections (num + 1) (ds ++ [dir])
-
 getNewCell :: [String] -> [String] -> Char
 getNewCell m m' = (m !! x) !! y
                where
@@ -111,20 +101,38 @@ play map (m:ms) cell = do let map' = makeMove map m cell
                                       putStrLn m
                                       putStrLn "Your current board:"
                                       printMap map
-                                    --   putStrLn "Please type 'play' to enter new directions:"
-                                    --   start map
                               else do printMap map'
                                       let bonusCount = bonusPos map
                                       let newBonusCount = bonusPos map'
-                                      if ((length newBonusCount) == (length bonusCount) - 1)
-                                          then do putStr "Got bonus "
-                                                  putStrLn (show (3 - length(newBonusCount)))
+                                      if ((length newBonusCount) < (length bonusCount))
+                                          then do putStr "Got "
+                                                  putStr (show (3 - length(newBonusCount)))
+                                                  putStrLn "/3 bonuses!"
                                                   putStrLn ""
                                           else putStrLn ""
-                                    --   let (x, y) = head (ballPos map')
-                                    --   let newCell = (map !! x) !! y
                                       let newCell = getNewCell map map'
                                       play map' ms newCell
+
+parseCond :: String -> [String]
+parseCond dir = [[dir !! 5]] ++ [tail (init (drop 7 dir))]
+
+parseDir :: String -> [String]
+parseDir dir
+    | dir `elem` ["Right", "Up", "Down", "Left", "Function"] = [dir]
+    | take 4 dir == "Cond" = parseCond dir
+
+-- Loop{n}{Direction,Direction}     n = [0,5]
+getDirections :: Int -> [String] -> IO [String]
+getDirections num ds = if (num == 0)
+                            then do putStr "First Direction: "
+                                    dir <- getLine
+                                    getDirections (num + 1) (ds ++ [dir])
+                            else do putStr "Next Direction: "
+                                    dir <- getLine
+                                    if (dir == "") 
+                                        then return ds
+                                        else do let pDir = parseDir dir
+                                                getDirections (num + 1) (ds ++ pDir)
 
 start :: [String] -> IO ()
 start map = do inp <- getLine
