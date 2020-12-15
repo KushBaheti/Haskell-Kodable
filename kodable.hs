@@ -13,57 +13,67 @@ load s = do contents <- readFile s
             putStrLn "Initial:"
             printMap map
             start map
+
+coords :: [String] -> Char -> [(Int, Int)]
+coords m c = [(x, y) | (x, line) <- zip [0..] m, y <- elemIndices c line]
  
 ballPos :: [String] -> [(Int, Int)]
-ballPos m = [(x, y) | (x, line) <- zip [0..] m, y <- elemIndices '@' line] 
+ballPos m = coords m '@'
+
+bonusPos :: [String] -> [(Int, Int)]
+bonusPos m = coords m 'b'
 
 stepRight :: String -> Int -> Char -> String
 stepRight r y c = take y r ++ [c] ++ " " ++ ['@'] ++ drop (y + 3) r
 
 moveRight :: String -> Int -> Char -> String
-moveRight r y c = if (valid && next == '-')
-                    then moveRight (stepRight r y c) (y + 2) next
-                    else r
-                  where
-                    valid = (y + 2) < (length r)
-                    next = r !! (y + 2)
+moveRight r y c 
+    | valid && next == '-' = moveRight (stepRight r y c) (y + 2) next
+    | valid && next == 'b' = moveRight (stepRight r y c) (y + 2) '-'
+    | otherwise            = r
+        where
+            valid = (y + 2) < (length r)
+            next = r !! (y + 2)
 
 stepLeft :: String -> Int -> Char -> String
 stepLeft r y c = take (y - 2) r ++ ['@'] ++ " " ++ [c] ++ drop (y + 1) r
 
 moveLeft :: String -> Int -> Char -> String
-moveLeft r y c = if (valid && next == '-')
-                    then moveLeft (stepLeft r y c) (y - 2) next
-                    else r
-                  where
-                    valid = (y - 2) >= 0
-                    next = r !! (y - 2)
+moveLeft r y c
+    | valid && next == '-' = moveLeft (stepLeft r y c) (y - 2) next
+    | valid && next == 'b' = moveLeft (stepLeft r y c) (y - 2) '-'
+    | otherwise            = r
+        where
+            valid = (y - 2) >= 0
+            next = r !! (y - 2)
 
 moveUp :: [String] -> Int -> Int -> Char -> [String]
-moveUp m x y c = if (valid && next == '-')
-                    then moveUp modifiedMap (x - 1) y next
-                    else m
-                 where
-                    valid = x >= 1
-                    next  = (m !! (x - 1)) !! y
-                    rUp      = m !! (x - 1)
-                    rCurrent = m !! x
-                    modifyRowUp      = take y rUp ++ ['@'] ++ drop (y + 1) rUp
-                    modifyRowCurrent = take y rCurrent ++ [c] ++ drop (y + 1) rCurrent
-                    modifiedMap = take (x - 1) m ++ [modifyRowUp] ++ [modifyRowCurrent] ++ drop (x + 1) m
+moveUp m x y c
+    | valid && next == '-' = moveUp modifiedMap (x - 1) y next
+    | valid && next == 'b' = moveUp modifiedMap (x - 1) y '-'
+    | otherwise            = m
+        where
+            valid = x >= 1
+            next  = (m !! (x - 1)) !! y
+            rUp      = m !! (x - 1)
+            rCurrent = m !! x
+            modifyRowUp      = take y rUp ++ ['@'] ++ drop (y + 1) rUp
+            modifyRowCurrent = take y rCurrent ++ [c] ++ drop (y + 1) rCurrent
+            modifiedMap = take (x - 1) m ++ [modifyRowUp] ++ [modifyRowCurrent] ++ drop (x + 1) m
 
 moveDown :: [String] -> Int -> Int -> Char -> [String]
-moveDown m x y c = if (valid && next == '-')
-                        then moveDown modifiedMap (x + 1) y next
-                        else m
-                   where
-                        valid = x < (length m) - 1
-                        next  = (m !! (x + 1)) !! y
-                        rCurrent = m !! x
-                        rDown    = m !! (x + 1)
-                        modifyRowCurrent = take y rCurrent ++ [c] ++ drop (y + 1) rCurrent
-                        modifyRowDown    = take y rDown ++ ['@'] ++ drop (y + 1) rDown 
-                        modifiedMap = take x m ++ [modifyRowCurrent] ++ [modifyRowDown] ++ drop (x + 2) m
+moveDown m x y c
+    | valid && next == '-' = moveDown modifiedMap (x + 1) y next
+    | valid && next == 'b' = moveDown modifiedMap (x + 1) y '-'
+    | otherwise            = m
+        where
+            valid = x < (length m) - 1
+            next  = (m !! (x + 1)) !! y
+            rCurrent = m !! x
+            rDown    = m !! (x + 1)
+            modifyRowCurrent = take y rCurrent ++ [c] ++ drop (y + 1) rCurrent
+            modifyRowDown    = take y rDown ++ ['@'] ++ drop (y + 1) rDown 
+            modifiedMap = take x m ++ [modifyRowCurrent] ++ [modifyRowDown] ++ drop (x + 2) m
 
 makeMove :: [String] -> String -> Char -> [String]
 makeMove map command cell
@@ -99,7 +109,13 @@ play map (m:ms) cell = do let map' = makeMove map m cell
                                     --   putStrLn "Please type 'play' to enter new directions:"
                                     --   start map
                               else do printMap map'
-                                      putStrLn ""
+                                      let bonusCount = bonusPos map
+                                      let newBonusCount = bonusPos map'
+                                      if ((length newBonusCount) == (length bonusCount) - 1)
+                                          then do putStr "Got bonus "
+                                                  putStrLn (show (3 - length(newBonusCount)))
+                                                  putStrLn ""
+                                          else putStrLn ""
                                       let (x, y) = head (ballPos map)
                                       let newCell = (map' !! x) !! y
                                       play map' ms newCell
