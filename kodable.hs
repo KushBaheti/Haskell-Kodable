@@ -53,11 +53,12 @@ moveLeft r y c nextMove
             nextIsColor = next `elem` ['p', 'o', 'y']
             continue = ['-', 'p', 'o', 'y', 't']
 
-moveUp :: [String] -> Int -> Int -> Char -> [String]
-moveUp m x y c
-    | valid && next == '-' = moveUp modifiedMap (x - 1) y next
-    | valid && next == 'b' = moveUp modifiedMap (x - 1) y '-'
-    | otherwise            = m
+moveUp :: [String] -> Int -> Int -> Char -> String -> [String]
+moveUp m x y c nextMove
+    | valid && nextIsColor && [next] == nextMove = modifiedMap
+    | valid && next`elem` continue               = moveUp modifiedMap (x - 1) y next nextMove
+    | valid && next == 'b'                       = moveUp modifiedMap (x - 1) y '-' nextMove
+    | otherwise                                  = m
         where
             valid = x >= 1
             next  = (m !! (x - 1)) !! y
@@ -66,12 +67,15 @@ moveUp m x y c
             modifyRowUp      = take y rUp ++ ['@'] ++ drop (y + 1) rUp
             modifyRowCurrent = take y rCurrent ++ [c] ++ drop (y + 1) rCurrent
             modifiedMap = take (x - 1) m ++ [modifyRowUp] ++ [modifyRowCurrent] ++ drop (x + 1) m
+            nextIsColor = next `elem` ['p', 'o', 'y']
+            continue = ['-', 'p', 'o', 'y', 't']
 
-moveDown :: [String] -> Int -> Int -> Char -> [String]
-moveDown m x y c
-    | valid && next == '-' = moveDown modifiedMap (x + 1) y next
-    | valid && next == 'b' = moveDown modifiedMap (x + 1) y '-'
-    | otherwise            = m
+moveDown :: [String] -> Int -> Int -> Char -> String -> [String]
+moveDown m x y c nextMove
+    | valid && nextIsColor && [next] == nextMove = modifiedMap
+    | valid && next == '-'                       = moveDown modifiedMap (x + 1) y next nextMove
+    | valid && next == 'b'                       = moveDown modifiedMap (x + 1) y '-' nextMove
+    | otherwise                                  = m
         where
             valid = x < (length m) - 1
             next  = (m !! (x + 1)) !! y
@@ -80,13 +84,15 @@ moveDown m x y c
             modifyRowCurrent = take y rCurrent ++ [c] ++ drop (y + 1) rCurrent
             modifyRowDown    = take y rDown ++ ['@'] ++ drop (y + 1) rDown 
             modifiedMap = take x m ++ [modifyRowCurrent] ++ [modifyRowDown] ++ drop (x + 2) m
+            nextIsColor = next `elem` ['p', 'o', 'y']
+            continue = ['-', 'p', 'o', 'y', 't']
 
 makeMove :: [String] -> String -> String -> Char -> [String]
 makeMove map move nextMove cell
     | move == "Right" = modifyRight
     | move == "Left"  = modifyLeft
-    | move == "Up"    = moveUp map x y cell
-    | move == "Down"  = moveDown map x y cell
+    | move == "Up"    = moveUp map x y cell nextMove
+    | move == "Down"  = moveDown map x y cell nextMove
     | otherwise = map
         where
             (x, y) = head (ballPos map)
@@ -150,6 +156,7 @@ parseDir :: String -> [String]
 parseDir dir
     | dir `elem` ["Right", "Up", "Down", "Left", "Function"] = [dir]
     | take 4 dir == "Cond" = parseCond dir
+    -- | take 4 dir == "Loop" = parseLoop dir
 
 -- Loop{n}{Direction,Direction}     n = [0,5]
 getDirections :: Int -> [String] -> IO [String]
