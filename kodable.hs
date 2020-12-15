@@ -149,35 +149,40 @@ parseCond :: String -> [String]
 parseCond dir = [[dir !! 5]] ++ [tail (init (drop 7 dir))]
 
 parseLoop :: String -> [String]
-parseLoop dir = [[dir !! 5]] ++ [take idx directions] ++ [drop (idx + 1) directions]
-                where
-                    directions = init (drop 8 dir)
-                    idx        = head [y | (x, y) <- zip directions [0..], x == ',']
+parseLoop dir
+    | itr >= 0 && itr <= 5  = concat $ replicate itr ([take idx directions] ++ [drop (idx + 1) directions])
+    | otherwise             = parseDir "-1"
+        where
+            itr        = read ([dir !! 5])
+            directions = init (drop 8 dir)
+            idx        = head [y | (x, y) <- zip directions [0..], x == ',']
 
 parseDir :: String -> [String]
 parseDir dir
     | dir `elem` ["Right", "Up", "Down", "Left", "Function"] = [dir]
     | take 4 dir == "Cond" = parseCond dir
-    | take 4 dir == "Loop" = parseLoop dir
+    | take 4 dir == "Loop" = concat $ map parseDir (parseLoop dir)
+    | otherwise            = [dir]
 
--- Loop{n}{Direction,Direction}     n = [0,5]
 getDirections :: Int -> [String] -> IO [String]
-getDirections num ds = if (num == 0)
+getDirections num ds = do if (num == 0)
                             then do putStr "First Direction: "
-                                    dir <- getLine
-                                    getDirections (num + 1) (ds ++ [dir])
                             else do putStr "Next Direction: "
-                                    dir <- getLine
-                                    if (dir == "") 
-                                        then return ds
-                                        else do let pDir = parseDir dir
-                                                getDirections (num + 1) (ds ++ pDir)
+                          dir <- getLine
+                          if (dir == "") 
+                          then return ds
+                          else do let pDir = parseDir dir
+                                  if (pDir == ["-1"])
+                                      then return (ds ++ pDir)
+                                      else getDirections (num + 1) (ds ++ pDir)
 
 start :: [String] -> IO ()
 start map = do inp <- getLine
                if (inp == "play") 
                     then do moves <- getDirections 0 []
-                            play map moves '-'
+                            if ((last moves) == "-1")
+                                then putStrLn "Invalid direction."
+                                else play map moves '-'
                     else do putStrLn "Invalid command."
                             start map
 
