@@ -26,27 +26,32 @@ bonusPos m = coords m 'b'
 stepRight :: String -> Int -> Char -> String
 stepRight r y c = take y r ++ [c] ++ " " ++ ['@'] ++ drop (y + 3) r
 
-moveRight :: String -> Int -> Char -> String
-moveRight r y c 
-    | valid && next == '-' = moveRight (stepRight r y c) (y + 2) next
-    | valid && next == 'b' = moveRight (stepRight r y c) (y + 2) '-'
-    -- | valid && next == 'p' = undefined -- check next command | if p -> execute next direction (return) else 
-    | otherwise            = r
+moveRight :: String -> Int -> Char -> String -> String
+moveRight r y c nextMove
+    | valid && nextIsColor && [next] == nextMove = stepRight r y c
+    | valid && next `elem` continue              = moveRight (stepRight r y c) (y + 2) next nextMove
+    | valid && next == 'b'                       = moveRight (stepRight r y c) (y + 2) '-' nextMove 
+    | otherwise                                  = r
         where
             valid = (y + 2) < (length r)
             next = r !! (y + 2)
+            nextIsColor = next `elem` ['p', 'o', 'y']
+            continue = ['-', 'p', 'o', 'y', 't']
 
 stepLeft :: String -> Int -> Char -> String
 stepLeft r y c = take (y - 2) r ++ ['@'] ++ " " ++ [c] ++ drop (y + 1) r
 
-moveLeft :: String -> Int -> Char -> String
-moveLeft r y c
-    | valid && next == '-' = moveLeft (stepLeft r y c) (y - 2) next
-    | valid && next == 'b' = moveLeft (stepLeft r y c) (y - 2) '-'
-    | otherwise            = r
+moveLeft :: String -> Int -> Char -> String -> String
+moveLeft r y c nextMove
+    | valid && nextIsColor && [next] == nextMove = stepLeft r y c
+    | valid && next `elem` continue              = moveLeft (stepLeft r y c) (y - 2) next nextMove
+    | valid && next == 'b'                       = moveLeft (stepLeft r y c) (y - 2) '-' nextMove
+    | otherwise                                  = r
         where
             valid = (y - 2) >= 0
             next = r !! (y - 2)
+            nextIsColor = next `elem` ['p', 'o', 'y']
+            continue = ['-', 'p', 'o', 'y', 't']
 
 moveUp :: [String] -> Int -> Int -> Char -> [String]
 moveUp m x y c
@@ -76,42 +81,67 @@ moveDown m x y c
             modifyRowDown    = take y rDown ++ ['@'] ++ drop (y + 1) rDown 
             modifiedMap = take x m ++ [modifyRowCurrent] ++ [modifyRowDown] ++ drop (x + 2) m
 
-makeMove :: [String] -> String -> Char -> [String]
-makeMove map command cell
-    | command == "Right" = modifyRight
-    | command == "Left"  = modifyLeft
-    | command == "Up"    = moveUp map x y cell
-    | command == "Down"  = moveDown map x y cell
+makeMove :: [String] -> String -> String -> Char -> [String]
+makeMove map move nextMove cell
+    | move == "Right" = modifyRight
+    | move == "Left"  = modifyLeft
+    | move == "Up"    = moveUp map x y cell
+    | move == "Down"  = moveDown map x y cell
     | otherwise = map
         where
             (x, y) = head (ballPos map)
-            modifyRight = take x map ++ [(moveRight (map !! x) y cell)] ++ drop (x + 1) map
-            modifyLeft  = take x map ++ [(moveLeft  (map !! x) y cell)] ++ drop (x + 1) map
+            modifyRight = take x map ++ [(moveRight (map !! x) y cell nextMove)] ++ drop (x + 1) map
+            modifyLeft  = take x map ++ [(moveLeft  (map !! x) y cell nextMove)] ++ drop (x + 1) map
+            moveIsColor = move `elem` ["p", "o", "y"]
 
 getNewCell :: [String] -> [String] -> Char
 getNewCell m m' = (m !! x) !! y
                where
                    (x, y) = head (ballPos m')
 
+none :: String
+none = "none"
+
 play :: [String] -> [String] -> Char -> IO ()
-play _ [] _          = return ()
-play map (m:ms) cell = do let map' = makeMove map m cell
-                          if (map == map') 
-                              then do putStr "Sorry, error: cannot move to the "
-                                      putStrLn m
-                                      putStrLn "Your current board:"
-                                      printMap map
-                              else do printMap map'
-                                      let bonusCount = bonusPos map
-                                      let newBonusCount = bonusPos map'
-                                      if ((length newBonusCount) < (length bonusCount))
-                                          then do putStr "Got "
-                                                  putStr (show (3 - length(newBonusCount)))
-                                                  putStrLn "/3 bonuses!"
-                                                  putStrLn ""
-                                          else putStrLn ""
-                                      let newCell = getNewCell map map'
-                                      play map' ms newCell
+play _ [] _                         = return ()
+play map [move] cell                = play map (move:[none]) cell
+play map (move:nextMove:moves) cell = do let map' = makeMove map move nextMove cell
+                                         if (map == map') 
+                                            then do putStr "Sorry, error: cannot move to the "
+                                                    putStrLn move
+                                                    putStrLn "Your current board:"
+                                                    printMap map
+                                            else do 
+                                                    printMap map'
+                                                    let bonusCount = bonusPos map
+                                                    let newBonusCount = bonusPos map'
+                                                    if ((length newBonusCount) < (length bonusCount))
+                                                        then do putStr "Got "
+                                                                putStr (show (3 - length(newBonusCount)))
+                                                                putStrLn "/3 bonuses!"
+                                                                putStrLn ""
+                                                        else putStrLn ""
+                                                    let newCell = getNewCell map map'
+                                                    if (nextMove `elem` ["p", "o", "y"])
+                                                        then
+                                                            if [newCell] /= nextMove
+                                                                then case nextMove of
+                                                                        "p" -> putStrLn ("Pink conditional never found")
+                                                                        "o" -> putStrLn ("Orange conditional never found")
+                                                                        "y" -> putStrLn ("Yellow conditional never found")
+                                                                else
+                                                                    play map' moves newCell
+                                                        else
+                                                            if (nextMove == none)
+                                                                then
+                                                                    if (newCell == 't')
+                                                                        then
+                                                                            putStrLn "YOU WON!"
+                                                                        else
+                                                                            putStrLn "YOU LOST."
+                                                                else
+                                                                    play map' (nextMove:moves) newCell
+                                                    
 
 parseCond :: String -> [String]
 parseCond dir = [[dir !! 5]] ++ [tail (init (drop 7 dir))]
