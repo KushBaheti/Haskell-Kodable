@@ -155,14 +155,15 @@ parseLoop dir
         where
             itr        = read ([dir !! 5])
             directions = init (drop 8 dir)
-            idx        = head [y | (x, y) <- zip directions [0..], x == ',']
+            [idx]      = [y | (x, y) <- zip directions [0..], x == ',']
 
 parseDir :: String -> [String]
 parseDir dir
     | dir `elem` ["Right", "Up", "Down", "Left", "Function"] = [dir]
-    | take 4 dir == "Cond" = parseCond dir
-    | take 4 dir == "Loop" = concat $ map parseDir (parseLoop dir)
-    | otherwise            = [dir]
+    | take 4 dir == "Cond"     = parseCond dir
+    | take 4 dir == "Loop"     = concat $ map parseDir (parseLoop dir)
+    -- | take 8 dir == "Function" = parseFunc dir
+    | otherwise                = ["-1"]
 
 getDirections :: Int -> [String] -> IO [String]
 getDirections num ds = do if (num == 0)
@@ -176,15 +177,30 @@ getDirections num ds = do if (num == 0)
                                       then return (ds ++ pDir)
                                       else getDirections (num + 1) (ds ++ pDir)
 
+getFuncMoves :: String -> String -> String -> [String]
+getFuncMoves d1 d2 d3 = concat $ map (parseDir) [d1, d2, d3]
+
+insertFuncMoves :: [String] -> [String] -> [String]
+insertFuncMoves moves funcMoves = concatMap (\move -> if (move == "Function") then funcMoves else [move]) moves
+
 start :: [String] -> IO ()
 start map = do inp <- getLine
-               if (inp == "play") 
-                    then do moves <- getDirections 0 []
-                            if ((last moves) == "-1")
-                                then putStrLn "Invalid direction."
-                                else play map moves '-'
-                    else do putStrLn "Invalid command."
-                            start map
+               let inps = words inp
+               case inps of 
+                   ["play"]             -> do moves <- getDirections 0 []
+                                              if ((last moves) == "-1")
+                                                  then putStrLn "Invalid direction."
+                                                  else play map moves '-'
+                   ["play", d1, d2, d3] -> do let funcMoves = getFuncMoves d1 d2 d3
+                                              if ("-1" `elem` funcMoves)
+                                                  then putStrLn "Invalid direction."
+                                                  else do moves <- getDirections 0 []
+                                                          if ((last moves) == "-1")
+                                                              then putStrLn "Invalid direction."
+                                                              else do let updatedMoves = insertFuncMoves moves funcMoves
+                                                                      play map updatedMoves '-'
+                   _                    -> do putStrLn "Invalid command. Please try again."
+                                              start map
 
 -- load
 -- check
