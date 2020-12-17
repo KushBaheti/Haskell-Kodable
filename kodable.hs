@@ -26,6 +26,8 @@ module Kodable
 import System.IO  
 import Data.List
 
+-- import Check
+
 printMap :: [String] -> IO ()
 printMap []    = return ()
 printMap (m:ms) = do putStrLn m
@@ -224,6 +226,9 @@ start :: [String] -> IO ()
 start map = do inp <- getLine
                let inps = words inp
                case inps of 
+                --    ["check"]            -> if (check map)
+                --                             then putStrLn "The map is solvable!"
+                --                             else putStrLn "The map is not solvable."  
                    ["play"]             -> do moves <- getDirections 0 []
                                               if (length moves <= 0 || (last moves) == "-1")
                                                   then putStrLn "Invalid direction."
@@ -251,5 +256,4 @@ start map = do inp <- getLine
 -- play
 --     directions
 --     test
-                 
--- head ballPos
+

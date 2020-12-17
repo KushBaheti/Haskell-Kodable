@@ -1,3 +1,5 @@
+module Check ( check ) where
+
 import Kodable
 
 import System.IO  
@@ -46,13 +48,18 @@ updatedPos (x, y) "Left"  = (x, y - 2)
 updatedPos (x, y) "Up"    = (x - 1, y)
 updatedPos (x, y) "Down"  = (x + 1, y)
 
-check :: [String] -> String -> (Int, Int) -> [(Int, Int)] -> Bool
-check maze currentDirection (x, y) visited
+checkUtil :: [String] -> String -> (Int, Int) -> [(Int, Int)] -> Bool
+checkUtil maze currentDirection (x, y) visited
     | cell == 't' = True
     | cell /= 't' && moves == [] = False
-    | cell /= 't' && moves /= [] = any (True == ) (map (\move -> check maze move (updatedPos (x, y) move) updatedVisited) moves)
+    | cell /= 't' && moves /= [] = any (True == ) (map (\move -> checkUtil maze move (updatedPos (x, y) move) updatedVisited) moves)
         where
             cell  = (maze !! x) !! y
             moves = getPossibleMoves maze currentDirection (x, y) visited
             updatedVisited = visited ++ (map (\move -> updatedPos (x, y) move) moves)
+
+check :: [String] -> Bool
+check map = checkUtil map "none" ballCoords [ballCoords]
+            where
+                [ballCoords] = ballPos map
 
