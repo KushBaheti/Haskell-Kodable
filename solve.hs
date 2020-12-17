@@ -23,12 +23,13 @@ canGo map dir x y visited
 
 getPossibleMoves :: [String] -> String -> (Int, Int) -> [(Int, Int)] -> [String]
 getPossibleMoves map currentDirection (x,y) visited 
-    | x == 0 || y == 0 || x == (lRow - 1) || y == (lCol - 1) = delete currentDirection . delete (opposite currentDirection) $ concat [right, left, up, down]
+    | ballAtPerimeter                  = delete currentDirection . delete (opposite currentDirection) $ concat [right, left, up, down]
     | cell `elem` ['p', 'o', 'y', '@'] = delete (opposite currentDirection) $ concat [right, left, up, down]
     | nextCell /= '*'                  = if (canGo map currentDirection x y visited) then [currentDirection] else []
     | nextCell == '*'                  = delete currentDirection . delete (opposite currentDirection) $ concat [right, left, up, down]
     | otherwise                        = []
         where 
+            ballAtPerimeter = x == 0 || y == 0 || x == (lRow - 1) || y == (lCol - 1)
             cell  = (map !! x) !! y
             (newX, newY) = updatedPos (x, y) currentDirection
             nextCell = (map !! newX) !! newY
