@@ -1,26 +1,26 @@
 module Kodable 
     ( printMap
-    , load
-    , coords
+    -- , load
+    -- , coords
     , ballPos
-    , bonusPos
-    , stepRight
-    , moveRight
-    , stepLeft
-    , moveLeft
-    , moveUp
-    , moveDown
-    , makeMove
-    , getNewCell
+    -- , bonusPos
+    -- , stepRight
+    -- , moveRight
+    -- , stepLeft
+    -- , moveLeft
+    -- , moveUp
+    -- , moveDown
+    -- , makeMove
+    -- , getNewCell
     , none
-    , play
-    , parseCond
-    , parseLoop
-    , parseDir
-    , getDirections
-    , getFuncMoves
-    , insertFuncMoves
-    , start        
+    -- , play
+    -- , parseCond
+    -- , parseLoop
+    -- , parseDir
+    -- , getDirections
+    -- , getFuncMoves
+    -- , insertFuncMoves
+    -- , start        
     ) where
 
 import System.IO  
@@ -142,7 +142,9 @@ play map [move] cell                = play map (move:[none]) cell
 play map (move:nextMove:moves) cell = do let map' = makeMove map move nextMove cell
                                          if (map == map') 
                                             then do putStr "Sorry, error: cannot move to the "
-                                                    putStrLn move
+                                                    if ((length move) == 1) 
+                                                        then putStrLn ("Cond{" ++ move ++ "}{" ++ nextMove ++ "}")
+                                                        else putStrLn move
                                                     putStrLn "Your current board:"
                                                     printMap map
                                             else do 
@@ -168,25 +170,33 @@ play map (move:nextMove:moves) cell = do let map' = makeMove map move nextMove c
                                                                         then putStrLn "Congratulations! You win the game!"
                                                                         else putStrLn "You didn't reach the target. That's alright, try again!"
                                                                 else play map' (nextMove:moves) newCell
-                                                    
+              
 parseCond :: String -> [String]
-parseCond dir = [[dir !! 5]] ++ [tail (init (drop 7 dir))]
+parseCond dir = [[dir !! 5]] ++ condMove
+                where
+                    extractedMove = tail (init (drop 7 dir))
+                    condMove = if extractedMove `elem` ["Right", "Up", "Down", "Left"] then [extractedMove] else ["-1"]
 
 parseLoop :: String -> [String]
 parseLoop dir
-    | itr >= 0 && itr <= 5  = concat $ replicate itr ([take idx directions] ++ [drop (idx + 1) directions])
+    | itr >= 0 && itr <= 5 && valid d1 && valid d2  = concat $ replicate itr ([d1] ++ [d2])
     | otherwise             = parseDir "-1"
         where
             itr        = read ([dir !! 5])
             directions = init (drop 8 dir)
             [idx]      = [y | (x, y) <- zip directions [0..], x == ',']
+            d1         = take idx directions
+            d2         = drop (idx + 1) directions
+            valid d    = d `elem` ["Right", "Up", "Down", "Left"] || take 4 d1 == "Cond"
 
 parseDir :: String -> [String]
 parseDir dir
     | dir `elem` ["Right", "Up", "Down", "Left", "Function"] = [dir]
-    | take 4 dir == "Cond"     = parseCond dir
+    | take 4 dir == "Cond"     = if (color `elem` ['p', 'o', 'y']) then parseCond dir else ["-1"]
     | take 4 dir == "Loop"     = concat $ map parseDir (parseLoop dir)
     | otherwise                = ["-1"]
+        where
+            color = dir !! 5
 
 getDirections :: Int -> [String] -> IO [String]
 getDirections num ds = do if (num == 0)
@@ -196,12 +206,16 @@ getDirections num ds = do if (num == 0)
                           if (dir == "") 
                           then return ds
                           else do let pDir = parseDir dir
-                                  if (pDir == ["-1"])
+                                  if ("-1" `elem` pDir)
                                       then return (ds ++ pDir)
                                       else getDirections (num + 1) (ds ++ pDir)
 
 getFuncMoves :: String -> String -> String -> [String]
-getFuncMoves d1 d2 d3 = concat $ map (parseDir) [d1, d2, d3]
+getFuncMoves d1 d2 d3 = if (validD1 && validD2 && validD3) then concat $ map (parseDir) [d1, d2, d3] else ["-1"]
+                        where
+                            validD1 = d1 `elem` ["Right", "Up", "Down", "Left"] || take 4 d1 == "Cond"
+                            validD2 = d2 `elem` ["Right", "Up", "Down", "Left"] || take 4 d2 == "Cond"
+                            validD3 = d3 `elem` ["Right", "Up", "Down", "Left"] || take 4 d3 == "Cond"
 
 insertFuncMoves :: [String] -> [String] -> [String]
 insertFuncMoves moves funcMoves = concatMap (\move -> if (move == "Function") then funcMoves else [move]) moves
@@ -211,7 +225,7 @@ start map = do inp <- getLine
                let inps = words inp
                case inps of 
                    ["play"]             -> do moves <- getDirections 0 []
-                                              if ((last moves) == "-1")
+                                              if (length moves <= 0 || (last moves) == "-1")
                                                   then putStrLn "Invalid direction."
                                                   else do putStrLn "Test:"
                                                           putStrLn ""
@@ -220,9 +234,10 @@ start map = do inp <- getLine
                                               if ("-1" `elem` funcMoves)
                                                   then putStrLn "Invalid direction."
                                                   else do moves <- getDirections 0 []
-                                                          if ((last moves) == "-1")
+                                                          if (length moves <= 0 || (last moves) == "-1")
                                                               then putStrLn "Invalid direction."
                                                               else do let updatedMoves = insertFuncMoves moves funcMoves
+                                                                      putStrLn ""
                                                                       putStrLn "Test:"
                                                                       putStrLn ""
                                                                       play map updatedMoves '-'
@@ -237,3 +252,4 @@ start map = do inp <- getLine
 --     directions
 --     test
                  
+-- head ballPos
