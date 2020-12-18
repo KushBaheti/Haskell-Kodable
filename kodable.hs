@@ -205,17 +205,22 @@ parseDir dir
 
 getDirections :: [String] -> Int -> [String] -> IO [String]
 getDirections map num ds = do if (num == 0)
-                            then do putStr "First Direction: "
-                            else do putStr "Next Direction: "
-                          dir <- getLine
-                          if (dir == "") 
-                          then return ds
-                          else do if (dir == "hint")
-                                    then do let hint = getHint map ds
-                                    else do let pDir = parseDir dir
-                                            if ("-1" `elem` pDir)
-                                                then return (ds ++ pDir)
-                                                else getDirections map (num + 1) (ds ++ pDir)
+                                then do putStr "First Direction: "
+                                else do putStr "Next Direction: "
+                              dir <- getLine
+                              if (dir == "") 
+                                then return ds
+                                else do if (dir == "hint")
+                                            then do let [hint] = getHint map ds
+                                                    putStrLn ""
+                                                    putStrLn ("Here is a hint for you -> " ++ hint)
+                                                    putStrLn "Continue entering directions below:"
+                                                    putStrLn ""
+                                                    getDirections map (num + 1) ds
+                                            else do let pDir = parseDir dir
+                                                    if ("-1" `elem` pDir)
+                                                        then return (ds ++ pDir)
+                                                        else getDirections map (num + 1) (ds ++ pDir)
 
 getFuncMoves :: String -> String -> String -> [String]
 getFuncMoves d1 d2 d3 = if (validD1 && validD2 && validD3) then concat $ map (parseDir) [d1, d2, d3] else ["-1"]

@@ -28,9 +28,11 @@ updateAtPosition map x y = take x map ++ [modifiedRow] ++ drop (x + 1) map
                                modifiedRow = take y row ++ "@" ++ drop (y + 1) row
 
 getHint :: [String] -> [String] -> [String]
-getHint map moves = take 1 (optimalSolution placeAt)
-                    where
-                        [(x, y)] = ballPos map
-                        (currentMap, currentX, currentY, _) = getHintUtil map moves x y 0
-                        removeAt = atToDash currentMap x y
-                        placeAt = updateAtPosition removeAt currentX currentY
+getHint map moves
+    | moves == [] = take 1 (optimalSolution map 0) 
+    | otherwise   = take 1 (optimalSolution placeAt currentBonus)
+        where
+            [(x, y)] = ballPos map
+            (currentMap, currentX, currentY, currentBonus) = getHintUtil map moves x y 0
+            removeAt = atToDash currentMap x y
+            placeAt = updateAtPosition removeAt currentX currentY
