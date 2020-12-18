@@ -1,5 +1,8 @@
 module Solution 
     ( optimalSolution
+    , optimalSolutionForHint
+    , optimalSolutionUtil
+    , shortestSolution
     , goRight
     , goLeft
     , goUp
@@ -78,17 +81,29 @@ condense (move:nextMove:moves) = if (sameDirection)
                                                      (length nextMove) >= 11   &&
                                                      move == (init $ drop 8 nextMove)
 
-optimalSolution :: [String] -> Int -> [String]
-optimalSolution map bonusCaptured
+optimalSolution :: [String] -> [String]
+optimalSolution map
     | canReach3Bonus /= [] = condense . shortestSolution $ canReach3Bonus
     | canReach2Bonus /= [] = condense . shortestSolution $ canReach2Bonus
     | canReach1Bonus /= [] = condense . shortestSolution $ canReach1Bonus
     | canReach0Bonus /= [] = condense . shortestSolution $ canReach0Bonus
         where
             [(x, y)] = ballPos map
-            canReach3Bonus = optimalSolutionUtil map x y [(x, y, bonusCaptured)] [] bonusCaptured 3
-            canReach2Bonus = optimalSolutionUtil map x y [(x, y, bonusCaptured)] [] bonusCaptured 2
-            canReach1Bonus = optimalSolutionUtil map x y [(x, y, bonusCaptured)] [] bonusCaptured 1
-            canReach0Bonus = optimalSolutionUtil map x y [(x, y, bonusCaptured)] [] bonusCaptured 0
+            canReach3Bonus = optimalSolutionUtil map x y [(x, y, 0)] [] 0 3
+            canReach2Bonus = optimalSolutionUtil map x y [(x, y, 0)] [] 0 2
+            canReach1Bonus = optimalSolutionUtil map x y [(x, y, 0)] [] 0 1
+            canReach0Bonus = optimalSolutionUtil map x y [(x, y, 0)] [] 0 0
+
+optimalSolutionForHint :: [String] -> Int -> Int -> Int -> [String]
+optimalSolutionForHint map x y capturedBonus
+    | canReach3Bonus /= [] = condense . shortestSolution $ canReach3Bonus
+    | canReach2Bonus /= [] = condense . shortestSolution $ canReach2Bonus
+    | canReach1Bonus /= [] = condense . shortestSolution $ canReach1Bonus
+    | canReach0Bonus /= [] = condense . shortestSolution $ canReach0Bonus
+        where
+            canReach3Bonus = optimalSolutionUtil map x y [(x, y, capturedBonus)] [] capturedBonus 3
+            canReach2Bonus = optimalSolutionUtil map x y [(x, y, capturedBonus)] [] capturedBonus 2
+            canReach1Bonus = optimalSolutionUtil map x y [(x, y, capturedBonus)] [] capturedBonus 1
+            canReach0Bonus = optimalSolutionUtil map x y [(x, y, capturedBonus)] [] capturedBonus 0
     
 

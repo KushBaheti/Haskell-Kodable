@@ -11,9 +11,11 @@ makeMove map "Down"  x y bonus = goDown  map x y bonus
 
 getHintUtil :: [String] -> [String] -> Int -> Int -> Int -> ([String], Int, Int, Int)
 getHintUtil map [move] x y bonus = makeMove map move x y bonus
-getHintUtil map (move:moves) x y bonus = getHintUtil newMap moves newX newY newBonus
-                               where
-                                   (newMap, newX, newY, newBonus) = makeMove map move x y bonus
+getHintUtil map (move:moves) x y bonus
+    | (length move == 1) = if [((map !! x) !! y)] == move then getHintUtil map moves x y bonus else ([], -1, -1, -1)
+    | otherwise = getHintUtil newMap moves newX newY newBonus
+        where
+            (newMap, newX, newY, newBonus) = makeMove map move x y bonus
 
 atToDash :: [String] -> Int -> Int -> [String]
 atToDash map x y = take x map ++ [modifiedRow] ++ drop (x + 1) map
@@ -29,10 +31,10 @@ updateAtPosition map x y = take x map ++ [modifiedRow] ++ drop (x + 1) map
 
 getHint :: [String] -> [String] -> [String]
 getHint map moves
-    | moves == [] = take 1 (optimalSolution map 0) 
-    | otherwise   = take 1 (optimalSolution placeAt currentBonus)
+    | moves == [] = take 1 (optimalSolutionForHint map x y 0) 
+    | otherwise   = if currentMap == [] then ["-1"] else take 1 (optimalSolutionForHint currentMap currentX currentY currentBonus)
         where
             [(x, y)] = ballPos map
             (currentMap, currentX, currentY, currentBonus) = getHintUtil map moves x y 0
-            removeAt = atToDash currentMap x y
-            placeAt = updateAtPosition removeAt currentX currentY
+            removeAt = if (currentMap == []) then [] else atToDash currentMap x y
+            placeAt = if (removeAt == []) then [] else updateAtPosition removeAt currentX currentY

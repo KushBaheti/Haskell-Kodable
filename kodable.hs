@@ -213,9 +213,11 @@ getDirections map num ds = do if (num == 0)
                                 else do if (dir == "hint")
                                             then do let [hint] = getHint map ds
                                                     putStrLn ""
-                                                    putStrLn ("Here is a hint for you -> " ++ hint)
-                                                    putStrLn "Continue entering directions below:"
-                                                    putStrLn ""
+                                                    if (hint == "-1")
+                                                        then putStrLn "Initial directions are incorrect. Please quit and try again!"
+                                                        else do putStrLn ("Here is a hint for you -> " ++ hint)
+                                                                putStrLn "Continue entering directions below:"
+                                                                putStrLn ""
                                                     getDirections map (num + 1) ds
                                             else do let pDir = parseDir dir
                                                     if ("-1" `elem` pDir)
