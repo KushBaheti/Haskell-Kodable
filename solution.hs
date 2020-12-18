@@ -1,4 +1,11 @@
-module Solution ( optimalSolution ) where
+module Solution 
+    ( optimalSolution
+    , goRight
+    , goLeft
+    , goUp
+    , goDown
+    , removeBonus
+    ) where
 
 import Data.List
 import Data.Ord
@@ -41,10 +48,10 @@ goDown map x y bonus
     | (map !! (x + 1)) !! y `elem` ['p', 'o', 'y', 't'] = (map, (x + 1), y, bonus)
     | otherwise = goDown map (x+1) y bonus
 
-optimalSolutionUtil :: [String] -> Int -> Int -> [(Int, Int, Int)] -> [String] -> Int -> [[String]]
-optimalSolutionUtil map x y visited solution bonus
-    | cell == 't' && bonus /= 3 = []
-    | cell == 't' && bonus == 3 = [solution]
+optimalSolutionUtil :: [String] -> Int -> Int -> [(Int, Int, Int)] -> [String] -> Int -> Int -> [[String]]
+optimalSolutionUtil map x y visited solution bonus targetBonus
+    | cell == 't' && bonus /= targetBonus = []
+    | cell == 't' && bonus == targetBonus = [solution]
     | isColor cell = (rightPath (condString cell "Right")) ++ (leftPath (condString cell "Left")) ++ (upPath (condString cell "Up")) ++ (downPath (condString cell "Down"))
     | otherwise = (rightPath "Right") ++ (leftPath "Left") ++ (upPath "Up") ++ (downPath "Down")
         where
@@ -52,13 +59,13 @@ optimalSolutionUtil map x y visited solution bonus
             isColor c = c `elem` ['p', 'o', 'y']
             condString cell s = "Cond{" ++ [cell] ++ "}{" ++ s ++ "}"
             (mapR, xR, yR, bonusR) = goRight map x y bonus
-            rightPath s = if ((x == xR && y == yR) || (xR, yR, bonusR) `elem` visited) then [] else optimalSolutionUtil mapR xR yR (visited ++ [(xR, yR, bonusR)]) (solution ++ [s]) bonusR 
+            rightPath s = if ((x == xR && y == yR) || (xR, yR, bonusR) `elem` visited) then [] else optimalSolutionUtil mapR xR yR (visited ++ [(xR, yR, bonusR)]) (solution ++ [s]) bonusR targetBonus
             (mapL, xL, yL, bonusL) = goLeft map x y bonus
-            leftPath s  = if ((x == xL && y == yL) || (xL, yL, bonusL) `elem` visited) then [] else optimalSolutionUtil mapL xL yL (visited ++ [(xL, yL, bonusL)]) (solution ++ [s]) bonusL
+            leftPath s  = if ((x == xL && y == yL) || (xL, yL, bonusL) `elem` visited) then [] else optimalSolutionUtil mapL xL yL (visited ++ [(xL, yL, bonusL)]) (solution ++ [s]) bonusL targetBonus
             (mapU, xU, yU, bonusU) = goUp map x y bonus
-            upPath s    = if ((x == xU && y == yU) || (xU, yU, bonusU) `elem` visited) then [] else optimalSolutionUtil mapU xU yU (visited ++ [(xU, yU, bonusU)]) (solution ++ [s]) bonusU 
+            upPath s    = if ((x == xU && y == yU) || (xU, yU, bonusU) `elem` visited) then [] else optimalSolutionUtil mapU xU yU (visited ++ [(xU, yU, bonusU)]) (solution ++ [s]) bonusU targetBonus
             (mapD, xD, yD, bonusD) = goDown map x y bonus
-            downPath s  = if ((x == xD && y == yD) || (xD, yD, bonusD) `elem` visited) then [] else optimalSolutionUtil mapD xD yD (visited ++ [(xD, yD, bonusD)]) (solution ++ [s]) bonusD 
+            downPath s  = if ((x == xD && y == yD) || (xD, yD, bonusD) `elem` visited) then [] else optimalSolutionUtil mapD xD yD (visited ++ [(xD, yD, bonusD)]) (solution ++ [s]) bonusD targetBonus
 
 condense :: [String] -> [String]
 condense [] = []
@@ -70,9 +77,18 @@ condense (move:nextMove:moves) = if (sameDirection)
                                      sameDirection = take 4 nextMove == "Cond" && 
                                                      (length nextMove) >= 11   &&
                                                      move == (init $ drop 8 nextMove)
-                                                     
+
 optimalSolution :: [String] -> [String]
-optimalSolution map = condense . shortestSolution $ optimalSolutionUtil map x y [(x, y, 0)] [] 0
-                            where
-                                [(x, y)] = ballPos map
+optimalSolution map
+    | canReach3Bonus /= [] = condense . shortestSolution $ canReach3Bonus
+    | canReach2Bonus /= [] = condense . shortestSolution $ canReach2Bonus
+    | canReach1Bonus /= [] = condense . shortestSolution $ canReach1Bonus
+    | canReach0Bonus /= [] = condense . shortestSolution $ canReach0Bonus
+        where
+            [(x, y)] = ballPos map
+            canReach3Bonus = optimalSolutionUtil map x y [(x, y, 0)] [] 0 3
+            canReach2Bonus = optimalSolutionUtil map x y [(x, y, 0)] [] 0 2
+            canReach1Bonus = optimalSolutionUtil map x y [(x, y, 0)] [] 0 1
+            canReach0Bonus = optimalSolutionUtil map x y [(x, y, 0)] [] 0 0
+    
 

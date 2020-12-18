@@ -29,6 +29,7 @@ import Data.List
 import MapUtils
 import Check
 import Solution
+import Hint
 
 -- printMap :: [String] -> IO ()
 -- printMap []    = return ()
@@ -202,17 +203,19 @@ parseDir dir
         where
             color = dir !! 5
 
-getDirections :: Int -> [String] -> IO [String]
-getDirections num ds = do if (num == 0)
+getDirections :: [String] -> Int -> [String] -> IO [String]
+getDirections map num ds = do if (num == 0)
                             then do putStr "First Direction: "
                             else do putStr "Next Direction: "
                           dir <- getLine
                           if (dir == "") 
                           then return ds
-                          else do let pDir = parseDir dir
-                                  if ("-1" `elem` pDir)
-                                      then return (ds ++ pDir)
-                                      else getDirections (num + 1) (ds ++ pDir)
+                          else do if (dir == "hint")
+                                    then do let hint = getHint map ds
+                                    else do let pDir = parseDir dir
+                                            if ("-1" `elem` pDir)
+                                                then return (ds ++ pDir)
+                                                else getDirections map (num + 1) (ds ++ pDir)
 
 getFuncMoves :: String -> String -> String -> [String]
 getFuncMoves d1 d2 d3 = if (validD1 && validD2 && validD3) then concat $ map (parseDir) [d1, d2, d3] else ["-1"]
@@ -234,7 +237,7 @@ start map = do inp <- getLine
                                             else do putStrLn "The map is not solvable. Please try again with a new/updated map."  
                                                     start map
                    ["load", s]          -> load s 
-                   ["play"]             -> do moves <- getDirections 0 []
+                   ["play"]             -> do moves <- getDirections map 0 []
                                               if (length moves <= 0 || (last moves) == "-1")
                                                   then putStrLn "Invalid direction."
                                                   else do putStrLn "Test:"
@@ -243,7 +246,7 @@ start map = do inp <- getLine
                    ["play", d1, d2, d3] -> do let funcMoves = getFuncMoves d1 d2 d3
                                               if ("-1" `elem` funcMoves)
                                                   then putStrLn "Invalid direction."
-                                                  else do moves <- getDirections 0 []
+                                                  else do moves <- getDirections map 0 []
                                                           if (length moves <= 0 || (last moves) == "-1")
                                                               then putStrLn "Invalid direction."
                                                               else do let updatedMoves = insertFuncMoves moves funcMoves
