@@ -2,7 +2,7 @@ module Kodable
     ( printMap
     -- , load
     -- , coords
-    , ballPos
+    -- , ballPos
     -- , bonusPos
     -- , stepRight
     -- , moveRight
@@ -12,7 +12,7 @@ module Kodable
     -- , moveDown
     -- , makeMove
     -- , getNewCell
-    , none
+    -- , none
     -- , play
     -- , parseCond
     -- , parseLoop
@@ -20,7 +20,8 @@ module Kodable
     -- , getDirections
     -- , getFuncMoves
     -- , insertFuncMoves
-    -- , start        
+    -- , start      
+    , ballPos  
     ) where
 
 import System.IO  

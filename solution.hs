@@ -15,7 +15,7 @@ removeBonus map x y = take x map ++ [modifiedRow] ++ drop (x + 1) map
 
 goRight :: [String] -> Int -> Int -> Int -> ([String], Int, Int, Int)
 goRight map x y bonus
-    | y + 2 >= ((length $ head map) - 1) || (map !! x) !! (y + 2) == '*' = (map, x, y, bonus) 
+    | y + 2 >= (length $ head map) || (map !! x) !! (y + 2) == '*' = (map, x, y, bonus) 
     | (map !! x) !! (y + 2) == 'b' = goRight (removeBonus map x (y+2)) x (y + 2) (bonus + 1)
     | (map !! x) !! (y + 2) `elem` ['p', 'o', 'y', 't'] = (map, x, (y + 2), bonus)
     | otherwise = goRight map x (y + 2) bonus
@@ -36,14 +36,14 @@ goUp map x y bonus
 
 goDown :: [String] -> Int -> Int -> Int -> ([String], Int, Int, Int)
 goDown map x y bonus
-    | x + 1 > ((length map) - 1) || (map !! (x + 1)) !! y == '*' = (map, x, y, bonus) 
+    | x + 1 >= (length map) || (map !! (x + 1)) !! y == '*' = (map, x, y, bonus) 
     | (map !! (x + 1)) !! y == 'b' = goDown (removeBonus map (x+1) y) (x + 1) y (bonus + 1)
     | (map !! (x + 1)) !! y `elem` ['p', 'o', 'y', 't'] = (map, (x + 1), y, bonus)
     | otherwise = goDown map (x+1) y bonus
 
 optimalSolutionUtil :: [String] -> Int -> Int -> [(Int, Int, Int)] -> [String] -> Int -> [[String]]
 optimalSolutionUtil map x y visited solution bonus
-    | (cell == 't' && bonus /= 3) = []
+    | cell == 't' && bonus /= 3 = []
     | cell == 't' && bonus == 3 = [solution]
     | isColor cell = (rightPath (condString cell "Right")) ++ (leftPath (condString cell "Left")) ++ (upPath (condString cell "Up")) ++ (downPath (condString cell "Down"))
     | otherwise = (rightPath "Right") ++ (leftPath "Left") ++ (upPath "Up") ++ (downPath "Down")
@@ -64,7 +64,7 @@ condense :: [String] -> [String]
 condense [] = []
 condense [move] = [move]
 condense (move:nextMove:moves) = if (sameDirection) 
-                                    then [move]  ++ condense moves 
+                                    then [move] ++ condense moves 
                                     else [move] ++ condense (nextMove:moves)
                                  where
                                      sameDirection = take 4 nextMove == "Cond" && 
