@@ -1,5 +1,5 @@
-module Kodable 
-    ( printMap
+module Kodable where
+--     ( printMap
     -- , load
     -- , coords
     -- , ballPos
@@ -20,19 +20,20 @@ module Kodable
     -- , getDirections
     -- , getFuncMoves
     -- , insertFuncMoves
-    -- , start      
-    , ballPos  
-    ) where
+    -- , start  
+    -- ) where
 
 import System.IO  
 import Data.List
 
--- import Check
+import MapUtils
+import Check
+import Solution
 
-printMap :: [String] -> IO ()
-printMap []    = return ()
-printMap (m:ms) = do putStrLn m
-                     printMap ms
+-- printMap :: [String] -> IO ()
+-- printMap []    = return ()
+-- printMap (m:ms) = do putStrLn m
+--                      printMap ms
 
 load :: String -> IO ()
 load s = do contents <- readFile s
@@ -42,14 +43,14 @@ load s = do contents <- readFile s
             printMap map
             start map
 
-coords :: [String] -> Char -> [(Int, Int)]
-coords m c = [(x, y) | (x, line) <- zip [0..] m, y <- elemIndices c line]
+-- coords :: [String] -> Char -> [(Int, Int)]
+-- coords m c = [(x, y) | (x, line) <- zip [0..] m, y <- elemIndices c line]
  
-ballPos :: [String] -> [(Int, Int)]
-ballPos m = coords m '@'
+-- ballPos :: [String] -> [(Int, Int)]
+-- ballPos m = coords m '@'
 
-bonusPos :: [String] -> [(Int, Int)]
-bonusPos m = coords m 'b'
+-- bonusPos :: [String] -> [(Int, Int)]
+-- bonusPos m = coords m 'b'
 
 stepRight :: String -> Int -> Char -> String
 stepRight r y c = take y r ++ [c] ++ " " ++ ['@'] ++ drop (y + 3) r
@@ -227,9 +228,12 @@ start :: [String] -> IO ()
 start map = do inp <- getLine
                let inps = words inp
                case inps of 
-                --    ["check"]            -> if (check map)
-                --                             then putStrLn "The map is solvable!"
-                --                             else putStrLn "The map is not solvable."  
+                   ["check"]            -> if (check map)
+                                            then do putStrLn "The map is solvable! Enter play to begin."
+                                                    start map
+                                            else do putStrLn "The map is not solvable. Please try again with a new/updated map."  
+                                                    start map
+                   ["load", s]          -> load s 
                    ["play"]             -> do moves <- getDirections 0 []
                                               if (length moves <= 0 || (last moves) == "-1")
                                                   then putStrLn "Invalid direction."

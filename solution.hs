@@ -3,7 +3,7 @@ module Solution ( optimalSolution ) where
 import Data.List
 import Data.Ord
 
-import Kodable
+import MapUtils
 
 shortestSolution solutions = minimumBy (comparing length) solutions
 

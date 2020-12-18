@@ -1,6 +1,6 @@
 module Check ( check ) where
 
-import Kodable
+import MapUtils
 
 import System.IO  
 import Data.List
@@ -31,7 +31,7 @@ getPossibleMoves map currentDirection (x,y) visited
     | nextCell == '*'                  = delete currentDirection . delete (opposite currentDirection) $ concat [right, left, up, down]
     | otherwise                        = []
         where 
-            ballAtPerimeter = x == 0 || y == 0 || x == (lRow - 1) || y == (lCol - 1)
+            ballAtPerimeter = x == 0 || y == 0 || x == (lCol - 1) || y == (lRow - 2)
             cell  = (map !! x) !! y
             (newX, newY) = updatedPos (x, y) currentDirection
             nextCell = (map !! newX) !! newY
@@ -62,4 +62,3 @@ check :: [String] -> Bool
 check map = checkUtil map "none" ballCoords [ballCoords]
             where
                 [ballCoords] = ballPos map
-
