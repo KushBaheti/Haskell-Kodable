@@ -1,27 +1,4 @@
 module Kodable where
---     ( printMap
-    -- , load
-    -- , coords
-    -- , ballPos
-    -- , bonusPos
-    -- , stepRight
-    -- , moveRight
-    -- , stepLeft
-    -- , moveLeft
-    -- , moveUp
-    -- , moveDown
-    -- , makeMove
-    -- , getNewCell
-    -- , none
-    -- , play
-    -- , parseCond
-    -- , parseLoop
-    -- , parseDir
-    -- , getDirections
-    -- , getFuncMoves
-    -- , insertFuncMoves
-    -- , start  
-    -- ) where
 
 import System.IO  
 import Data.List
@@ -31,33 +8,34 @@ import Check
 import Solution
 import Hint
 
--- printMap :: [String] -> IO ()
--- printMap []    = return ()
--- printMap (m:ms) = do putStrLn m
---                      printMap ms
+isValid :: [String] -> String
+isValid map 
+    | numOfBonus /= 3  = "Number of bonuses must be exactly 3."
+    | numOfBall /= 1   = "There must be only one ball ('@') on the map."
+    | numOfTarget /= 1 = "There must be only one target ('t') on the map."
+    | otherwise        = ""
+        where
+            numOfBonus  = length $ coords map 'b'
+            numOfBall   = length $ coords map '@'
+            numOfTarget = length $ coords map 't'
 
 load :: String -> IO ()
 load s = do contents <- readFile s
             let map = lines contents
             putStrLn "Read map successfully!"
-            putStrLn "Initial:"
-            printMap map
-            start map
-
--- coords :: [String] -> Char -> [(Int, Int)]
--- coords m c = [(x, y) | (x, line) <- zip [0..] m, y <- elemIndices c line]
- 
--- ballPos :: [String] -> [(Int, Int)]
--- ballPos m = coords m '@'
-
--- bonusPos :: [String] -> [(Int, Int)]
--- bonusPos m = coords m 'b'
+            let valid = isValid map
+            if (valid == "")
+                then do putStrLn "Initial:"
+                        printMap map
+                        start map
+                else putStrLn ("Invalid map. " ++ valid)
 
 stepRight :: String -> Int -> Char -> String
 stepRight r y c = take y r ++ [c] ++ " " ++ ['@'] ++ drop (y + 3) r
 
 moveRight :: String -> Int -> Char -> String -> String
 moveRight r y c nextMove
+    | valid && nextIsTarget                      = stepRight r y c
     | valid && nextIsColor && [next] == nextMove = stepRight r y c
     | valid && next `elem` continue              = moveRight (stepRight r y c) (y + 2) next nextMove
     | valid && next == 'b'                       = moveRight (stepRight r y c) (y + 2) '-' nextMove 
@@ -65,14 +43,16 @@ moveRight r y c nextMove
         where
             valid = (y + 2) < (length r)
             next = r !! (y + 2)
+            nextIsTarget = next == 't'
             nextIsColor = next `elem` ['p', 'o', 'y']
-            continue = ['-', 'p', 'o', 'y', 't']
+            continue = ['-', 'p', 'o', 'y']
 
 stepLeft :: String -> Int -> Char -> String
 stepLeft r y c = take (y - 2) r ++ ['@'] ++ " " ++ [c] ++ drop (y + 1) r
 
 moveLeft :: String -> Int -> Char -> String -> String
 moveLeft r y c nextMove
+    | valid && nextIsTarget                      = stepLeft r y c
     | valid && nextIsColor && [next] == nextMove = stepLeft r y c
     | valid && next `elem` continue              = moveLeft (stepLeft r y c) (y - 2) next nextMove
     | valid && next == 'b'                       = moveLeft (stepLeft r y c) (y - 2) '-' nextMove
@@ -80,11 +60,13 @@ moveLeft r y c nextMove
         where
             valid = (y - 2) >= 0
             next = r !! (y - 2)
+            nextIsTarget = next == 't'
             nextIsColor = next `elem` ['p', 'o', 'y']
-            continue = ['-', 'p', 'o', 'y', 't']
+            continue = ['-', 'p', 'o', 'y']
 
 moveUp :: [String] -> Int -> Int -> Char -> String -> [String]
 moveUp m x y c nextMove
+    | valid && nextIsTarget                      = modifiedMap
     | valid && nextIsColor && [next] == nextMove = modifiedMap
     | valid && next `elem` continue              = moveUp modifiedMap (x - 1) y next nextMove
     | valid && next == 'b'                       = moveUp modifiedMap (x - 1) y '-' nextMove
@@ -97,11 +79,13 @@ moveUp m x y c nextMove
             modifyRowUp      = take y rUp ++ ['@'] ++ drop (y + 1) rUp
             modifyRowCurrent = take y rCurrent ++ [c] ++ drop (y + 1) rCurrent
             modifiedMap = take (x - 1) m ++ [modifyRowUp] ++ [modifyRowCurrent] ++ drop (x + 1) m
+            nextIsTarget = next == 't'
             nextIsColor = next `elem` ['p', 'o', 'y']
-            continue = ['-', 'p', 'o', 'y', 't']
+            continue = ['-', 'p', 'o', 'y']
 
 moveDown :: [String] -> Int -> Int -> Char -> String -> [String]
 moveDown m x y c nextMove
+    | valid && nextIsTarget                      = modifiedMap
     | valid && nextIsColor && [next] == nextMove = modifiedMap
     | valid && next `elem` continue              = moveDown modifiedMap (x + 1) y next nextMove
     | valid && next == 'b'                       = moveDown modifiedMap (x + 1) y '-' nextMove
@@ -114,8 +98,9 @@ moveDown m x y c nextMove
             modifyRowCurrent = take y rCurrent ++ [c] ++ drop (y + 1) rCurrent
             modifyRowDown    = take y rDown ++ ['@'] ++ drop (y + 1) rDown 
             modifiedMap = take x m ++ [modifyRowCurrent] ++ [modifyRowDown] ++ drop (x + 2) m
+            nextIsTarget = next == 't'
             nextIsColor = next `elem` ['p', 'o', 'y']
-            continue = ['-', 'p', 'o', 'y', 't']
+            continue = ['-', 'p', 'o', 'y']
 
 makeMove :: [String] -> String -> String -> Char -> [String]
 makeMove map move nextMove cell
@@ -261,14 +246,11 @@ start map = do inp <- getLine
                                                                       putStrLn "Test:"
                                                                       putStrLn ""
                                                                       play map updatedMoves '-'
+                   ["solve"]            -> do let solution = unwords $ optimalSolution map
+                                              putStrLn "Optimal solution which collects all bonuses and has least change in directions is:"
+                                              putStrLn solution
+                                              start map
+                   ["quit"]             -> putStrLn "Thank you for playing Kodable, come back soon!"
                    _                    -> do putStrLn "Invalid command. Please try again."
                                               start map
-
--- load
--- check
--- solve
--- quit
--- play
---     directions
---     test
 
