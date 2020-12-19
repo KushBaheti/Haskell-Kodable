@@ -153,7 +153,10 @@ play map (move:nextMove:moves) cell = do let map' = makeMove map move nextMove c
                                                                 then if (newCell == 't')
                                                                         then do putStrLn "Congratulations! You win the game!"
                                                                                 putStrLn ("You collected " ++ (show (3 - length(newBonusCount))) ++ "/3 bonuses!")
-                                                                        else putStrLn "You didn't reach the target. That's alright, try again!"
+                                                                                putStrLn "Load another map to learn some more!"
+                                                                                start []
+                                                                        else do putStrLn "You didn't reach the target. That's alright, Please reload map and try again!"
+                                                                                start []
                                                                 else play map' (nextMove:moves) newCell
               
 parseCond :: String -> [String]
@@ -229,14 +232,18 @@ start map = do inp <- getLine
                    ["load", s]          -> load s 
                    ["play"]             -> do moves <- getDirections map 0 [] []
                                               if (length moves <= 0 || (last moves) == "-1")
-                                                  then putStrLn "Invalid direction."
+                                                  then do putStrLn "Invalid direction."
+                                                          putStrLn "Please reload map and start again."
+                                                          start map
                                                   else do putStrLn ""
                                                           putStrLn "Test:"
                                                           putStrLn ""
                                                           play map moves '-'
                    ["play", d1, d2, d3] -> do let funcMoves = getFuncMoves d1 d2 d3
                                               if ("-1" `elem` funcMoves)
-                                                  then putStrLn "Invalid direction."
+                                                  then do putStrLn "Invalid direction."
+                                                          putStrLn "Please reload map and start again."
+                                                          start map
                                                   else do moves <- getDirections map 0 [] funcMoves
                                                           if (length moves <= 0 || (last moves) == "-1")
                                                               then putStrLn "Invalid direction."
