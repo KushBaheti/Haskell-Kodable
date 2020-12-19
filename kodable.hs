@@ -123,12 +123,9 @@ getNewCell m m' = if (newCell == 'b')
                       (x, y) = head (ballPos m')
                       newCell = (m !! x) !! y
 
-none :: String
-none = "none"
-
 play :: [String] -> [String] -> Char -> IO ()
 play _ [] _                         = return ()
-play map [move] cell                = play map (move:[none]) cell
+play map [move] cell                = play map (move:["none"]) cell
 play map (move:nextMove:moves) cell = do let map' = makeMove map move nextMove cell
                                          if (map == map') 
                                             then do putStr "Sorry, error: cannot move to the "
@@ -142,10 +139,7 @@ play map (move:nextMove:moves) cell = do let map' = makeMove map move nextMove c
                                                     let bonusCount = bonusPos map
                                                     let newBonusCount = bonusPos map'
                                                     if ((length newBonusCount) < (length bonusCount))
-                                                        then do putStr "Got "
-                                                                putStr (show (3 - length(newBonusCount)))
-                                                                putStrLn "/3 bonuses!"
-                                                                putStrLn ""
+                                                        then putStrLn ("Got " ++ (show (3 - length(newBonusCount))) ++ "/3 bonuses!")
                                                         else putStrLn ""
                                                     let newCell = getNewCell map map'
                                                     if (nextMove `elem` ["p", "o", "y"])
@@ -155,9 +149,10 @@ play map (move:nextMove:moves) cell = do let map' = makeMove map move nextMove c
                                                                     "o" -> putStrLn ("Orange conditional never found")
                                                                     "y" -> putStrLn ("Yellow conditional never found")
                                                                 else play map' moves newCell
-                                                        else if (nextMove == none)
+                                                        else if (nextMove == "none")
                                                                 then if (newCell == 't')
-                                                                        then putStrLn "Congratulations! You win the game!"
+                                                                        then do putStrLn "Congratulations! You win the game!"
+                                                                                putStrLn ("You collected " ++ (show (3 - length(newBonusCount))) ++ "/3 bonuses!")
                                                                         else putStrLn "You didn't reach the target. That's alright, try again!"
                                                                 else play map' (nextMove:moves) newCell
               
@@ -179,6 +174,9 @@ parseLoop dir
             d2         = drop (idx + 1) directions
             valid d    = d `elem` ["Right", "Up", "Down", "Left"] || take 4 d1 == "Cond"
 
+parseFunc :: [String] -> [String] -> [String]
+parseFunc moves funcMoves = concatMap (\move -> if (move == "Function") then funcMoves else [move]) moves
+
 parseDir :: String -> [String]
 parseDir dir
     | dir `elem` ["Right", "Up", "Down", "Left", "Function"] = [dir]
@@ -188,26 +186,29 @@ parseDir dir
         where
             color = dir !! 5
 
-getDirections :: [String] -> Int -> [String] -> IO [String]
-getDirections map num ds = do if (num == 0)
-                                then do putStr "First Direction: "
-                                else do putStr "Next Direction: "
-                              dir <- getLine
-                              if (dir == "") 
-                                then return ds
-                                else do if (dir == "hint")
-                                            then do let [hint] = getHint map ds
-                                                    putStrLn ""
-                                                    if (hint == "-1")
-                                                        then putStrLn "Initial directions are incorrect. Please quit and try again!"
-                                                        else do putStrLn ("Here is a hint for you -> " ++ hint)
-                                                                putStrLn "Continue entering directions below:"
-                                                                putStrLn ""
-                                                    getDirections map (num + 1) ds
-                                            else do let pDir = parseDir dir
-                                                    if ("-1" `elem` pDir)
-                                                        then return (ds ++ pDir)
-                                                        else getDirections map (num + 1) (ds ++ pDir)
+getDirections :: [String] -> Int -> [String] -> [String] -> IO [String]
+getDirections map num ds funcMoves = do if (num == 0)
+                                            then do putStr "First Direction: "
+                                            else do putStr "Next Direction: "
+                                        dir <- getLine
+                                        if (dir == "") 
+                                            then return ds
+                                            else case dir of
+                                                    "hint" -> do let [hint] = getHint map ds
+                                                                 putStrLn ""
+                                                                 if (hint == "-1")
+                                                                    then do putStrLn "Initial directions are incorrect. Have a look at where the program ran into an issue and try again!"
+                                                                            return ds
+                                                                    else do putStrLn ("Here is a hint for you -> " ++ hint)
+                                                                            putStrLn "Continue entering directions below:"
+                                                                            putStrLn ""
+                                                                            getDirections map (num + 1) ds funcMoves
+                                                    "Function" -> do let updatedMoves = parseFunc (ds ++ ["Function"]) funcMoves
+                                                                     getDirections map (num + 1) updatedMoves funcMoves
+                                                    _      -> do let pDir = parseDir dir
+                                                                 if ("-1" `elem` pDir)
+                                                                    then return (ds ++ pDir)
+                                                                    else getDirections map (num + 1) (ds ++ pDir) funcMoves
 
 getFuncMoves :: String -> String -> String -> [String]
 getFuncMoves d1 d2 d3 = if (validD1 && validD2 && validD3) then concat $ map (parseDir) [d1, d2, d3] else ["-1"]
@@ -215,9 +216,6 @@ getFuncMoves d1 d2 d3 = if (validD1 && validD2 && validD3) then concat $ map (pa
                             validD1 = d1 `elem` ["Right", "Up", "Down", "Left"] || take 4 d1 == "Cond"
                             validD2 = d2 `elem` ["Right", "Up", "Down", "Left"] || take 4 d2 == "Cond"
                             validD3 = d3 `elem` ["Right", "Up", "Down", "Left"] || take 4 d3 == "Cond"
-
-insertFuncMoves :: [String] -> [String] -> [String]
-insertFuncMoves moves funcMoves = concatMap (\move -> if (move == "Function") then funcMoves else [move]) moves
 
 start :: [String] -> IO ()
 start map = do inp <- getLine
@@ -229,25 +227,25 @@ start map = do inp <- getLine
                                             else do putStrLn "The map is not solvable. Please try again with a new/updated map."  
                                                     start map
                    ["load", s]          -> load s 
-                   ["play"]             -> do moves <- getDirections map 0 []
+                   ["play"]             -> do moves <- getDirections map 0 [] []
                                               if (length moves <= 0 || (last moves) == "-1")
                                                   then putStrLn "Invalid direction."
-                                                  else do putStrLn "Test:"
+                                                  else do putStrLn ""
+                                                          putStrLn "Test:"
                                                           putStrLn ""
                                                           play map moves '-'
                    ["play", d1, d2, d3] -> do let funcMoves = getFuncMoves d1 d2 d3
                                               if ("-1" `elem` funcMoves)
                                                   then putStrLn "Invalid direction."
-                                                  else do moves <- getDirections map 0 []
+                                                  else do moves <- getDirections map 0 [] funcMoves
                                                           if (length moves <= 0 || (last moves) == "-1")
                                                               then putStrLn "Invalid direction."
-                                                              else do let updatedMoves = insertFuncMoves moves funcMoves
-                                                                      putStrLn ""
+                                                              else do putStrLn ""
                                                                       putStrLn "Test:"
                                                                       putStrLn ""
-                                                                      play map updatedMoves '-'
+                                                                      play map moves '-'
                    ["solve"]            -> do let solution = unwords $ optimalSolution map
-                                              putStrLn "Optimal solution which collects all bonuses and has least change in directions is:"
+                                              putStrLn "Optimal solution which collects all reachable bonuses and has least change in directions is:"
                                               putStrLn solution
                                               start map
                    ["quit"]             -> putStrLn "Thank you for playing Kodable, come back soon!"
