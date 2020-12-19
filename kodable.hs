@@ -6,8 +6,8 @@ import Data.List
 import MapUtils
 import Check
 import Solution
-import Hint
 
+-- find optimal sol to make sure it can be solved
 isValid :: [String] -> String
 isValid map 
     | numOfBonus /= 3  = "Number of bonuses must be exactly 3."
@@ -28,7 +28,8 @@ load s = do contents <- readFile s
                 then do putStrLn "Initial:"
                         printMap map
                         start map
-                else putStrLn ("Invalid map. " ++ valid)
+                else do putStrLn ("Invalid map. " ++ valid)
+                        putStrLn "Quitting game. Please load a new/updated map."
 
 stepRight :: String -> Int -> Char -> String
 stepRight r y c = take y r ++ [c] ++ " " ++ ['@'] ++ drop (y + 3) r
@@ -123,41 +124,46 @@ getNewCell m m' = if (newCell == 'b')
                       (x, y) = head (ballPos m')
                       newCell = (m !! x) !! y
 
-play :: [String] -> [String] -> Char -> IO ()
-play _ [] _                         = return ()
-play map [move] cell                = play map (move:["none"]) cell
-play map (move:nextMove:moves) cell = do let map' = makeMove map move nextMove cell
-                                         if (map == map') 
-                                            then do putStr "Sorry, error: cannot move to the "
-                                                    if ((length move) == 1) 
-                                                        then putStrLn ("Cond{" ++ move ++ "}{" ++ nextMove ++ "}")
-                                                        else putStrLn move
-                                                    putStrLn "Your current board:"
-                                                    printMap map
-                                            else do 
-                                                    printMap map'
-                                                    let bonusCount = bonusPos map
-                                                    let newBonusCount = bonusPos map'
-                                                    if ((length newBonusCount) < (length bonusCount))
-                                                        then putStrLn ("Got " ++ (show (3 - length(newBonusCount))) ++ "/3 bonuses!")
-                                                        else putStrLn ""
-                                                    let newCell = getNewCell map map'
-                                                    if (nextMove `elem` ["p", "o", "y"])
-                                                        then if [newCell] /= nextMove
-                                                                then case nextMove of
-                                                                    "p" -> putStrLn ("Pink conditional never found")
-                                                                    "o" -> putStrLn ("Orange conditional never found")
-                                                                    "y" -> putStrLn ("Yellow conditional never found")
-                                                                else play map' moves newCell
-                                                        else if (nextMove == "none")
-                                                                then if (newCell == 't')
-                                                                        then do putStrLn "Congratulations! You win the game!"
-                                                                                putStrLn ("You collected " ++ (show (3 - length(newBonusCount))) ++ "/3 bonuses!")
-                                                                                putStrLn "Load another map to learn some more!"
-                                                                                start []
-                                                                        else do putStrLn "You didn't reach the target. That's alright, Please reload map and try again!"
-                                                                                start []
-                                                                else play map' (nextMove:moves) newCell
+play :: [String] -> [String] -> Char -> [String] -> IO ()
+play _ [] _ _                        = return ()
+play map [move] cell funcMoves                = if (move == "hint") 
+                                                    then do let [hint] = take 1 (optimalSolution map)
+                                                            putStrLn ("Here is a hint for you -> " ++ hint)
+                                                            putStrLn "Enter 'play' and continue entering directions from current state:"
+                                                            putStrLn ""
+                                                            dirs <- getDirections map 1 [] funcMoves
+                                                            play map dirs cell funcMoves
+                                                    else play map (move:["none"]) cell funcMoves
+play map (move:nextMove:moves) cell funcMoves =  do let map' = makeMove map move nextMove cell
+                                                    if (map == map') 
+                                                        then do putStr "Sorry, error: cannot move to the "
+                                                                if ((length move) == 1) 
+                                                                    then putStrLn ("Cond{" ++ move ++ "}{" ++ nextMove ++ "}")
+                                                                    else putStrLn move
+                                                                putStrLn "Your current board:"
+                                                                printMap map
+                                                        else do 
+                                                                printMap map'
+                                                                let bonusCount = bonusPos map
+                                                                let newBonusCount = bonusPos map'
+                                                                if ((length newBonusCount) < (length bonusCount))
+                                                                    then putStrLn ("Got " ++ (show (3 - length(newBonusCount))) ++ "/3 bonuses!")
+                                                                    else putStrLn ""
+                                                                let newCell = getNewCell map map'
+                                                                if (nextMove `elem` ["p", "o", "y"])
+                                                                    then if [newCell] /= nextMove
+                                                                            then case nextMove of
+                                                                                "p" -> putStrLn ("Pink conditional never found")
+                                                                                "o" -> putStrLn ("Orange conditional never found")
+                                                                                "y" -> putStrLn ("Yellow conditional never found")
+                                                                            else play map' moves newCell funcMoves
+                                                                    else if (nextMove == "none")
+                                                                            then if (newCell == 't')
+                                                                                    then do putStrLn "Congratulations! You win the game!"
+                                                                                            putStrLn ("You collected " ++ (show (3 - length(newBonusCount))) ++ "/3 bonuses!")
+                                                                                            putStrLn "Load another map to learn some more!"
+                                                                                    else do putStrLn "You didn't reach the target. That's alright, Please reload map and try again!"
+                                                                            else play map' (nextMove:moves) newCell funcMoves
               
 parseCond :: String -> [String]
 parseCond dir = [[dir !! 5]] ++ condMove
@@ -197,15 +203,7 @@ getDirections map num ds funcMoves = do if (num == 0)
                                         if (dir == "") 
                                             then return ds
                                             else case dir of
-                                                    "hint" -> do let [hint] = getHint map ds
-                                                                 putStrLn ""
-                                                                 if (hint == "-1")
-                                                                    then do putStrLn "Initial directions are incorrect. Have a look at where the program ran into an issue and try again!"
-                                                                            return ds
-                                                                    else do putStrLn ("Here is a hint for you -> " ++ hint)
-                                                                            putStrLn "Continue entering directions below:"
-                                                                            putStrLn ""
-                                                                            getDirections map (num + 1) ds funcMoves
+                                                    "hint" -> return (ds ++ ["hint"])
                                                     "Function" -> do let updatedMoves = parseFunc (ds ++ ["Function"]) funcMoves
                                                                      getDirections map (num + 1) updatedMoves funcMoves
                                                     _      -> do let pDir = parseDir dir
@@ -222,7 +220,7 @@ getFuncMoves d1 d2 d3 = if (validD1 && validD2 && validD3) then concat $ map (pa
 
 start :: [String] -> IO ()
 start map = do inp <- getLine
-               let inps = words inp
+               let inps = words inp 
                case inps of 
                    ["check"]            -> if (check map)
                                             then do putStrLn "The map is solvable! Enter play to begin."
@@ -238,7 +236,8 @@ start map = do inp <- getLine
                                                   else do putStrLn ""
                                                           putStrLn "Test:"
                                                           putStrLn ""
-                                                          play map moves '-'
+                                                          play map moves '-' []
+                                                          start map
                    ["play", d1, d2, d3] -> do let funcMoves = getFuncMoves d1 d2 d3
                                               if ("-1" `elem` funcMoves)
                                                   then do putStrLn "Invalid direction."
@@ -250,7 +249,8 @@ start map = do inp <- getLine
                                                               else do putStrLn ""
                                                                       putStrLn "Test:"
                                                                       putStrLn ""
-                                                                      play map moves '-'
+                                                                      play map moves '-' funcMoves
+                                                                      start map
                    ["solve"]            -> do let solution = unwords $ optimalSolution map
                                               putStrLn "Optimal solution which collects all reachable bonuses and has least change in directions is:"
                                               putStrLn solution
