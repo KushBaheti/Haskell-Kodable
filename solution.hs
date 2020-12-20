@@ -1,6 +1,5 @@
 module Solution 
     ( optimalSolution
-    , optimalSolutionForHint
     , optimalSolutionUtil
     , shortestSolution
     , goRight
@@ -82,28 +81,16 @@ condense (move:nextMove:moves) = if (sameDirection)
                                                      move == (init $ drop 8 nextMove)
 
 optimalSolution :: [String] -> [String]
-optimalSolution map
-    | canReach3Bonus /= [] = condense . shortestSolution $ canReach3Bonus
-    | canReach2Bonus /= [] = condense . shortestSolution $ canReach2Bonus
-    | canReach1Bonus /= [] = condense . shortestSolution $ canReach1Bonus
-    | canReach0Bonus /= [] = condense . shortestSolution $ canReach0Bonus
+optimalSolution maze
+    | canReach3Bonus /= [] = shortestSolution $ map condense canReach3Bonus
+    | canReach2Bonus /= [] = shortestSolution $ map condense canReach2Bonus
+    | canReach1Bonus /= [] = shortestSolution $ map condense canReach1Bonus
+    | canReach0Bonus /= [] = shortestSolution $ map condense canReach0Bonus
+    | otherwise            = ["Not solvable."]
         where
-            [(x, y)] = ballPos map
-            canReach3Bonus = optimalSolutionUtil map x y [(x, y, 0)] [] 0 3
-            canReach2Bonus = optimalSolutionUtil map x y [(x, y, 0)] [] 0 2
-            canReach1Bonus = optimalSolutionUtil map x y [(x, y, 0)] [] 0 1
-            canReach0Bonus = optimalSolutionUtil map x y [(x, y, 0)] [] 0 0
-
-optimalSolutionForHint :: [String] -> Int -> Int -> Int -> [String]
-optimalSolutionForHint map x y capturedBonus
-    | canReach3Bonus /= [] = condense . shortestSolution $ canReach3Bonus
-    | canReach2Bonus /= [] = condense . shortestSolution $ canReach2Bonus
-    | canReach1Bonus /= [] = condense . shortestSolution $ canReach1Bonus
-    | canReach0Bonus /= [] = condense . shortestSolution $ canReach0Bonus
-        where
-            canReach3Bonus = optimalSolutionUtil map x y [(x, y, capturedBonus)] [] capturedBonus 3
-            canReach2Bonus = optimalSolutionUtil map x y [(x, y, capturedBonus)] [] capturedBonus 2
-            canReach1Bonus = optimalSolutionUtil map x y [(x, y, capturedBonus)] [] capturedBonus 1
-            canReach0Bonus = optimalSolutionUtil map x y [(x, y, capturedBonus)] [] capturedBonus 0
-    
+            [(x, y)] = ballPos maze
+            canReach3Bonus = optimalSolutionUtil maze x y [(x, y, 0)] [] 0 3
+            canReach2Bonus = optimalSolutionUtil maze x y [(x, y, 0)] [] 0 2
+            canReach1Bonus = optimalSolutionUtil maze x y [(x, y, 0)] [] 0 1
+            canReach0Bonus = optimalSolutionUtil maze x y [(x, y, 0)] [] 0 0  
 
