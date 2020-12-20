@@ -4,6 +4,7 @@ import System.IO
 import Data.List
 
 import MapUtils
+import Move
 import Check
 import Solution
 
@@ -12,15 +13,11 @@ isValid map
     | numOfBonus /= 3  = "Number of bonuses must be exactly 3."
     | numOfBall /= 1   = "There must be only one ball ('@') on the map."
     | numOfTarget /= 1 = "There must be only one target ('t') on the map."
-    -- | rlenIsNotConst   = "All rows of the map must be of the same length"
-    -- | invalidChars     = "Only the following characters are valid: ['@', 't', 'b', '-', 'p', 'o', 'y', '*', ' ']"
     | otherwise        = ""
         where
             numOfBonus  = length $ coords map 'b'
             numOfBall   = length $ coords map '@'
             numOfTarget = length $ coords map 't'
-            -- rlenIsNotConst = all ((length $ head map) == ) [len | r <- map, len <- [length r]]
-            -- invalidChars = any (False == ) [c `elem` ['@', 't', 'b', '-', 'p', 'o', 'y', '*', ' '] | x <- [0..((length map) - 1)], y <- [0..((length $ head map) - 1)], c <- [(map !! x) !! y]]
 
 options :: IO ()
 options = do putStrLn ""
@@ -72,91 +69,6 @@ create map lRow = do if (lRow == -1)
                                                 then putStrLn "The map must have at least one row!"
                                                 else do save (init map) (last map)
                                     else create (map ++ [row]) lRow
-
-stepRight :: String -> Int -> Char -> String
-stepRight r y c = take y r ++ [c] ++ " " ++ ['@'] ++ drop (y + 3) r
-
-moveRight :: String -> Int -> Char -> String -> String
-moveRight r y c nextMove
-    | valid && nextIsTarget                      = stepRight r y c
-    | valid && nextIsColor && [next] == nextMove = stepRight r y c
-    | valid && next `elem` continue              = moveRight (stepRight r y c) (y + 2) next nextMove
-    | valid && next == 'b'                       = moveRight (stepRight r y c) (y + 2) '-' nextMove 
-    | otherwise                                  = r
-        where
-            valid = (y + 2) < (length r)
-            next = r !! (y + 2)
-            nextIsTarget = next == 't'
-            nextIsColor = next `elem` ['p', 'o', 'y']
-            continue = ['-', 'p', 'o', 'y']
-
-stepLeft :: String -> Int -> Char -> String
-stepLeft r y c = take (y - 2) r ++ ['@'] ++ " " ++ [c] ++ drop (y + 1) r
-
-moveLeft :: String -> Int -> Char -> String -> String
-moveLeft r y c nextMove
-    | valid && nextIsTarget                      = stepLeft r y c
-    | valid && nextIsColor && [next] == nextMove = stepLeft r y c
-    | valid && next `elem` continue              = moveLeft (stepLeft r y c) (y - 2) next nextMove
-    | valid && next == 'b'                       = moveLeft (stepLeft r y c) (y - 2) '-' nextMove
-    | otherwise                                  = r
-        where
-            valid = (y - 2) >= 0
-            next = r !! (y - 2)
-            nextIsTarget = next == 't'
-            nextIsColor = next `elem` ['p', 'o', 'y']
-            continue = ['-', 'p', 'o', 'y']
-
-moveUp :: [String] -> Int -> Int -> Char -> String -> [String]
-moveUp m x y c nextMove
-    | valid && nextIsTarget                      = modifiedMap
-    | valid && nextIsColor && [next] == nextMove = modifiedMap
-    | valid && next `elem` continue              = moveUp modifiedMap (x - 1) y next nextMove
-    | valid && next == 'b'                       = moveUp modifiedMap (x - 1) y '-' nextMove
-    | otherwise                                  = m
-        where
-            valid = x >= 1
-            next  = (m !! (x - 1)) !! y
-            rUp      = m !! (x - 1)
-            rCurrent = m !! x
-            modifyRowUp      = take y rUp ++ ['@'] ++ drop (y + 1) rUp
-            modifyRowCurrent = take y rCurrent ++ [c] ++ drop (y + 1) rCurrent
-            modifiedMap = take (x - 1) m ++ [modifyRowUp] ++ [modifyRowCurrent] ++ drop (x + 1) m
-            nextIsTarget = next == 't'
-            nextIsColor = next `elem` ['p', 'o', 'y']
-            continue = ['-', 'p', 'o', 'y']
-
-moveDown :: [String] -> Int -> Int -> Char -> String -> [String]
-moveDown m x y c nextMove
-    | valid && nextIsTarget                      = modifiedMap
-    | valid && nextIsColor && [next] == nextMove = modifiedMap
-    | valid && next `elem` continue              = moveDown modifiedMap (x + 1) y next nextMove
-    | valid && next == 'b'                       = moveDown modifiedMap (x + 1) y '-' nextMove
-    | otherwise                                  = m
-        where
-            valid = x < (length m) - 1
-            next  = (m !! (x + 1)) !! y
-            rCurrent = m !! x
-            rDown    = m !! (x + 1)
-            modifyRowCurrent = take y rCurrent ++ [c] ++ drop (y + 1) rCurrent
-            modifyRowDown    = take y rDown ++ ['@'] ++ drop (y + 1) rDown 
-            modifiedMap = take x m ++ [modifyRowCurrent] ++ [modifyRowDown] ++ drop (x + 2) m
-            nextIsTarget = next == 't'
-            nextIsColor = next `elem` ['p', 'o', 'y']
-            continue = ['-', 'p', 'o', 'y']
-
-makeMove :: [String] -> String -> String -> Char -> [String]
-makeMove map move nextMove cell
-    | move == "Right" = modifyRight
-    | move == "Left"  = modifyLeft
-    | move == "Up"    = moveUp map x y cell nextMove
-    | move == "Down"  = moveDown map x y cell nextMove
-    | otherwise = map
-        where
-            (x, y) = head (ballPos map)
-            modifyRight = take x map ++ [(moveRight (map !! x) y cell nextMove)] ++ drop (x + 1) map
-            modifyLeft  = take x map ++ [(moveLeft  (map !! x) y cell nextMove)] ++ drop (x + 1) map
-            moveIsColor = move `elem` ["p", "o", "y"]
 
 getNewCell :: [String] -> [String] -> Char
 getNewCell m m' = if (newCell == 'b')
@@ -267,11 +179,12 @@ start :: [String] -> [String] -> IO ()
 start map currentMap =   do inp <- getLine
                             let inps = words inp 
                             case inps of 
-                                ["check"]            -> if (check map)
-                                                            then do putStrLn "The map is solvable (ball can reach target). Enter play to begin!"
-                                                                    start map currentMap
-                                                            else do putStrLn "The map is not solvable. Please try again with a new/updated map."  
-                                                                    start map currentMap
+                                ["check"]            -> do putStrLn "Checking if solvable, this may take a few seconds..."
+                                                           if (check map)
+                                                               then do putStrLn "The map is solvable (ball can reach target). Enter play to begin!"
+                                                                       start map currentMap
+                                                               else do putStrLn "The map is not solvable. Please try again with a new/updated map."  
+                                                                       start map currentMap
                                 ["load", s]          -> load s 
                                 ["play"]             ->  do moves <- getDirections map 0 [] []
                                                             if (length moves <= 0 || (last moves) == "-1")
@@ -296,7 +209,8 @@ start map currentMap =   do inp <- getLine
                                                                                     putStrLn ""
                                                                                     updatedMap <- play map moves '-' funcMoves
                                                                                     start map updatedMap
-                                ["solve"]            ->  do let solution = unwords $ optimalSolution map
+                                ["solve"]            ->  do putStrLn "Finding optimal solution, this may take a few seconds..."
+                                                            let solution = unwords $ optimalSolution map
                                                             putStrLn "Optimal solution which collects all reachable bonuses and has least change in directions is:"
                                                             putStrLn solution
                                                             start map currentMap

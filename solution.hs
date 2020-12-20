@@ -80,6 +80,11 @@ condense (move:nextMove:moves) = if (sameDirection)
                                                      (length nextMove) >= 11   &&
                                                      move == (init $ drop 8 nextMove)
 
+            -- parsePath move
+            --  | ((length path)>0) && (isLoop (lastToLast!!0)) && ((getLoopMoves (lastToLast!!0)) == (last ++ move))   = (take ((length path)-2) path) ++ [(increaseItr (lastToLast!!0))]
+            --  | ((length path)>2) && ((last ++ move) == lastTwo) && (not (isLoop (last!!0)))  = (take ((length path)-3) path) ++ ["Loop{2}{"++(lastTwo!!0)++","++(lastTwo!!1)++"}"]
+            --  | otherwise    = path ++ move
+
 optimalSolution :: [String] -> [String]
 optimalSolution maze
     | canReach3Bonus /= [] = shortestSolution $ map condense canReach3Bonus
