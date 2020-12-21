@@ -1,5 +1,6 @@
 module Solution 
     ( optimalSolution
+    , compressedOptimalSolution
     , optimalSolutionUtil
     , shortestSolution
     , goRight
@@ -13,8 +14,6 @@ import Data.List
 import Data.Ord
 
 import MapUtils
-
-shortestSolution solutions = minimumBy (comparing length) solutions
 
 removeBonus :: [String] -> Int -> Int -> [String]
 removeBonus map x y = take x map ++ [modifiedRow] ++ drop (x + 1) map
@@ -80,10 +79,27 @@ condense (move:nextMove:moves) = if (sameDirection)
                                                      (length nextMove) >= 11   &&
                                                      move == (init $ drop 8 nextMove)
 
-            -- parsePath move
-            --  | ((length path)>0) && (isLoop (lastToLast!!0)) && ((getLoopMoves (lastToLast!!0)) == (last ++ move))   = (take ((length path)-2) path) ++ [(increaseItr (lastToLast!!0))]
-            --  | ((length path)>2) && ((last ++ move) == lastTwo) && (not (isLoop (last!!0)))  = (take ((length path)-3) path) ++ ["Loop{2}{"++(lastTwo!!0)++","++(lastTwo!!1)++"}"]
-            --  | otherwise    = path ++ move
+compress solution idx parsed nextBranch abstainBranch functionBranch prevPair count func = 
+    shortestSolution $ [nextResult, abstainResult, functionResult]
+    where
+        nextResult = if (idx + 2 < length solution) then compress solution (idx+2) nextParsed True True False nextPair nextCount func else (parsed ++ drop idx solution) 
+        nextPair = [solution !! idx] ++ [solution !! (idx + 1)] 
+        nextCount = if (nextPair == prevPair) then (count + 1) else 1 
+        nextInterParsed = if ((nextPair == prevPair) && (count == 1)) then take ((length parsed) - 1) parsed else parsed
+        nextParsed1 =  (take ((length nextInterParsed) - 1) nextInterParsed) ++ [("Loop{" ++ (show nextCount) ++ "}{" ++ (head nextPair) ++ "," ++ (concat $ tail nextPair) ++ "}")]
+        nextParsed2 = parsed ++ nextPair
+        nextParsed = if (nextPair == prevPair) then nextParsed1 else nextParsed2
+
+        abstainResult = if (idx < length solution) then compress solution (idx + 1) abstainParsed True True True [] 0 func else parsed 
+        abstainParsed = parsed ++ [solution !! idx]
+
+        functionResult = if (((idx + 1) < length solution) && (functionBranch == True) && ((func == []) || (func /= [] && funcTriplet == func))) 
+                            then compress solution (idx+2) functionParsed True True False [] 0 funcTriplet 
+                            else (parsed ++ drop idx solution)
+        functionParsed = if (functionBranch == True) then (take ((length parsed) - 1) parsed) ++ ["Function"] else (parsed ++ drop idx solution) 
+        funcTriplet = if (functionBranch == True) then [solution !! (idx -1)] ++ [solution !! idx] ++ [solution !! (idx +1)] else []
+
+shortestSolution solutions = minimumBy (comparing length) solutions
 
 optimalSolution :: [String] -> [String]
 optimalSolution maze
@@ -98,4 +114,7 @@ optimalSolution maze
             canReach2Bonus = optimalSolutionUtil maze x y [(x, y, 0)] [] 0 2
             canReach1Bonus = optimalSolutionUtil maze x y [(x, y, 0)] [] 0 1
             canReach0Bonus = optimalSolutionUtil maze x y [(x, y, 0)] [] 0 0  
+
+compressedOptimalSolution :: [String] -> [String]
+compressedOptimalSolution maze = compress (optimalSolution maze) 0 [] True True False [] 0 []
 

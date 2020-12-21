@@ -28,8 +28,8 @@ options = do putStrLn ""
              putStrLn "4.  play d1 d2 d3 (Same as play, but accepts exactly three moves which can be used as functions during traversal.)"
              putStrLn "5.  load str      (Loads map stored in file named 'str'.)"
              putStrLn "6.  hint          (When inputting moves after play has begun, can ask for a hint from current state.)"
-             putStrLn "7.  save fileName (Save the game in it's current state. Note that filename must begin with 'saved-' and end with '.txt')"
-             putStrLn "8.  create        (Allows user to create maps by entering rows of the map and the fileName to store it in.)"
+             putStrLn "7.  save fileName (Save the game in it's current state. fileName prefix: 'saved-'; fileName suffix: '.txt')"
+             putStrLn "8.  create        (Allows user to create maps by entering rows of the map and fileName to store it in. fileName prefix: 'created-'; fileName suffix: '.txt')"
              putStrLn "9.  help          (Show available options.)"
              putStrLn "10. quit          (Quits the game.)"
              putStrLn ""
@@ -50,7 +50,7 @@ load s = do contents <- readFile s
 
 save :: [String] -> String -> IO ()
 save map fileName = do let contents = unlines map
-                       if (length fileName > 10 && take 6 fileName == "saved-" && (reverse $ take 4 $ reverse fileName) == ".txt")
+                       if (((length fileName > 12 && take 8 fileName == "created-") || (length fileName > 10 && take 6 fileName == "saved-")) && ((reverse $ take 4 $ reverse fileName) == ".txt") )
                            then do writeFile fileName contents
                                    putStrLn "Game saved succesfully!" 
                            else do putStrLn "Invalid file name/type. File name should begin with 'saved-' and end with '.txt'"
@@ -130,8 +130,8 @@ parseCond dir = [[dir !! 5]] ++ condMove
 
 parseLoop :: String -> [String]
 parseLoop dir
-    | itr >= 0 && itr <= 5 && valid d1 && valid d2  = concat $ replicate itr ([d1] ++ [d2])
-    | otherwise             = parseDir "-1"
+    | itr >= 0 && itr <= 5 && valid d1 && valid d2 = concat $ replicate itr ([d1] ++ [d2])
+    | otherwise = parseDir "-1"
         where
             itr        = read ([dir !! 5])
             directions = init (drop 8 dir)
@@ -203,7 +203,9 @@ start map currentMap =   do inp <- getLine
                                                                         start map currentMap
                                                                 else do moves <- getDirections map 0 [] funcMoves
                                                                         if (length moves <= 0 || (last moves) == "-1")
-                                                                            then putStrLn "Invalid direction."
+                                                                            then do putStrLn "Invalid direction."
+                                                                                    putStrLn "Please reload map and start again."    
+                                                                                    start map currentMap
                                                                             else do putStrLn ""
                                                                                     putStrLn "Test:"
                                                                                     putStrLn ""
@@ -211,8 +213,11 @@ start map currentMap =   do inp <- getLine
                                                                                     start map updatedMap
                                 ["solve"]            ->  do putStrLn "Finding optimal solution, this may take a few seconds..."
                                                             let solution = unwords $ optimalSolution map
+                                                            let compressedSolution = unwords $ compressedOptimalSolution map
                                                             putStrLn "Optimal solution which collects all reachable bonuses and has least change in directions is:"
                                                             putStrLn solution
+                                                            putStrLn "Compressed optimal solution:"
+                                                            putStrLn compressedSolution
                                                             start map currentMap
                                 ["save", fileName]   -> do save currentMap fileName
                                                            start map currentMap
