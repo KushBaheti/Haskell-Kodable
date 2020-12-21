@@ -1,12 +1,4 @@
-module Move 
-    ( stepRight
-    , moveRight
-    , stepLeft
-    , moveLeft
-    , moveUp
-    , moveDown
-    , makeMove
-    ) where
+module Move ( makeMove ) where
 
 import MapUtils
 

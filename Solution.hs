@@ -1,13 +1,6 @@
 module Solution 
     ( optimalSolution
     , compressedOptimalSolution
-    , optimalSolutionUtil
-    , shortestSolution
-    , goRight
-    , goLeft
-    , goUp
-    , goDown
-    , removeBonus
     ) where
 
 import Data.List
