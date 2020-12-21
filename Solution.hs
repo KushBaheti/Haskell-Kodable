@@ -88,6 +88,7 @@ optimalSolution maze
             canReach1Bonus = optimalSolutionUtil maze x y [(x, y, 0)] [] 0 1
             canReach0Bonus = optimalSolutionUtil maze x y [(x, y, 0)] [] 0 0  
 
+-- I developed the logic for this in collaboration with Siddharth Dev Tiwari (3035436791)
 compress solution idx parsed functionBranch prevPair count func = 
     shortestSolution $ [nextResult, abstainResult, functionResult]
     where
