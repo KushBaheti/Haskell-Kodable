@@ -8,12 +8,16 @@ import Data.Ord
 
 import MapUtils
 
+-- removes bonus from map if ball captures a bonus
 removeBonus :: [String] -> Int -> Int -> [String]
 removeBonus map x y = take x map ++ [modifiedRow] ++ drop (x + 1) map
                       where
                           row = map !! x
                           modifiedRow = take y row ++ "-" ++ drop (y + 1) row
 
+-- moves ball right
+-- input : map, ball coordinates on map, bonus count
+-- output: tuple of map, updated ball coordinates on map, updated bonus count
 goRight :: [String] -> Int -> Int -> Int -> ([String], Int, Int, Int)
 goRight map x y bonus
     | y + 2 >= (length $ head map) || (map !! x) !! (y + 2) == '*' = (map, x, y, bonus) 
@@ -21,6 +25,9 @@ goRight map x y bonus
     | (map !! x) !! (y + 2) `elem` ['p', 'o', 'y', 't'] = (map, x, (y + 2), bonus)
     | otherwise = goRight map x (y + 2) bonus
 
+-- moves ball left
+-- input : map, ball coordinates on map, bonus count
+-- output: tuple of map, updated ball coordinates on map, updated bonus count
 goLeft :: [String] -> Int -> Int -> Int -> ([String], Int, Int, Int)
 goLeft map x y bonus
     | y - 2 < 0 || (map !! x) !! (y - 2) == '*' = (map, x, y, bonus) 
@@ -28,6 +35,9 @@ goLeft map x y bonus
     | (map !! x) !! (y - 2) `elem` ['p', 'o', 'y', 't'] = (map, x, (y - 2), bonus)
     | otherwise = goLeft map x (y - 2) bonus
 
+-- moves ball up
+-- input : map, ball coordinates on map, bonus count
+-- output: tuple of map, updated ball coordinates on map, updated bonus count
 goUp :: [String] -> Int -> Int -> Int -> ([String], Int, Int, Int)
 goUp map x y bonus
     | x - 1 < 0 || (map !! (x - 1)) !! y == '*' = (map, x, y, bonus) 
@@ -35,6 +45,9 @@ goUp map x y bonus
     | (map !! (x - 1)) !! y `elem` ['p', 'o', 'y', 't'] = (map, (x - 1), y, bonus)
     | otherwise = goUp map (x-1) y bonus
 
+-- moves ball down
+-- input : map, ball coordinates on map, bonus count
+-- output: tuple of map, updated ball coordinates on map, updated bonus count
 goDown :: [String] -> Int -> Int -> Int -> ([String], Int, Int, Int)
 goDown map x y bonus
     | x + 1 >= (length map) || (map !! (x + 1)) !! y == '*' = (map, x, y, bonus) 
@@ -42,6 +55,9 @@ goDown map x y bonus
     | (map !! (x + 1)) !! y `elem` ['p', 'o', 'y', 't'] = (map, (x + 1), y, bonus)
     | otherwise = goDown map (x+1) y bonus
 
+-- called by optimalSolution, finds optimal solution (finds all reachable bonuses and moves towards target)
+-- input : map, ball coordinates on map, visited list containing tuple of (x,y,bonusCount), current solution path, bonuses already captured, target bonus to capture
+-- output: list of solution paths
 optimalSolutionUtil :: [String] -> Int -> Int -> [(Int, Int, Int)] -> [String] -> Int -> Int -> [[String]]
 optimalSolutionUtil map x y visited solution bonus targetBonus
     | cell == 't' && bonus /= targetBonus = []
@@ -61,8 +77,12 @@ optimalSolutionUtil map x y visited solution bonus targetBonus
             (mapD, xD, yD, bonusD) = goDown map x y bonus
             downPath s  = if ((x == xD && y == yD) || (xD, yD, bonusD) `elem` visited) then [] else optimalSolutionUtil mapD xD yD (visited ++ [(xD, yD, bonusD)]) (solution ++ [s]) bonusD targetBonus
 
+-- finds the shortest list from a list of lists
 shortestSolution solutions = minimumBy (comparing length) solutions
 
+-- if a direction is followed by a conditional of same direction, remove the conditional
+-- input : a solution path
+-- output: a solution path 
 compressCond :: [String] -> [String]
 compressCond [] = []
 compressCond [move] = [move]
@@ -74,6 +94,9 @@ compressCond (move:nextMove:moves) = if (sameDirection)
                                                      (length nextMove) >= 11   &&
                                                      move == (init $ drop 8 nextMove)
 
+-- wrapper function to find optimal solution of a map
+-- input : map
+-- output: optimal solution path as a list of directions 
 optimalSolution :: [String] -> [String]
 optimalSolution maze
     | canReach3Bonus /= [] = shortestSolution $ map compressCond canReach3Bonus
@@ -88,6 +111,9 @@ optimalSolution maze
             canReach1Bonus = optimalSolutionUtil maze x y [(x, y, 0)] [] 0 1
             canReach0Bonus = optimalSolutionUtil maze x y [(x, y, 0)] [] 0 0  
 
+-- compress optimal solution to make it shorter and include Loops and Functions
+-- input : shortest solution, current direction index, parsed direction list, flag to check if function can be made, previous pair (for loop), count of loop, function triplet
+-- output: condensed optimal solution as a list of directions 
 -- I developed the logic for this in collaboration with Siddharth Dev Tiwari (3035436791)
 compress solution idx parsed functionBranch prevPair count func = 
     shortestSolution $ [nextResult, abstainResult, functionResult]
@@ -109,6 +135,9 @@ compress solution idx parsed functionBranch prevPair count func =
         functionParsed = if (functionBranch == True) then (take ((length parsed) - 1) parsed) ++ ["Function"] else (parsed ++ drop idx solution) 
         funcTriplet = if (functionBranch == True) then [solution !! (idx -1)] ++ [solution !! idx] ++ [solution !! (idx +1)] else []
 
+-- wrapper function to compress optimal solution to make it shorter and include Loops and Functions
+-- input : map
+-- output: condensed solution path
 compressedOptimalSolution :: [String] -> [String]
 compressedOptimalSolution maze = compress (optimalSolution maze) 0 [] False [] 0 []
 

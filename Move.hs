@@ -2,9 +2,15 @@ module Move ( makeMove ) where
 
 import MapUtils
 
+-- called by moveRight, makes the ball take one step to the right
+-- input : row of map where ball is located, index where ball is located, character on which ball is located
+-- output: modified row after taking one step to the right 
 stepRight :: String -> Int -> Char -> String
 stepRight r y c = take y r ++ [c] ++ " " ++ ['@'] ++ drop (y + 3) r
 
+-- called by makeMove, moves the ball right
+-- input : map, ball coordinates, character on which ball is located, next move
+-- output: new map after having moved right
 moveRight :: String -> Int -> Char -> String -> String
 moveRight r y c nextMove
     | valid && nextIsTarget                      = stepRight r y c
@@ -19,9 +25,15 @@ moveRight r y c nextMove
             nextIsColor = next `elem` ['p', 'o', 'y']
             continue = ['-', 'p', 'o', 'y']
 
+-- called by moveLeft, makes the ball take one step to the left
+-- input : row of map where ball is located, index where ball is located, character on which ball is located
+-- output: modified row after taking one step to the left
 stepLeft :: String -> Int -> Char -> String
 stepLeft r y c = take (y - 2) r ++ ['@'] ++ " " ++ [c] ++ drop (y + 1) r
 
+-- called by makeMove, moves the ball left
+-- input : map, ball coordinates, character on which ball is located, next move
+-- output: new map after having moved left
 moveLeft :: String -> Int -> Char -> String -> String
 moveLeft r y c nextMove
     | valid && nextIsTarget                      = stepLeft r y c
@@ -36,6 +48,9 @@ moveLeft r y c nextMove
             nextIsColor = next `elem` ['p', 'o', 'y']
             continue = ['-', 'p', 'o', 'y']
 
+-- called by makeMove, moves the ball up
+-- input : map, ball coordinates, character on which ball is located, next move
+-- output: new map after having moved up
 moveUp :: [String] -> Int -> Int -> Char -> String -> [String]
 moveUp m x y c nextMove
     | valid && nextIsTarget                      = modifiedMap
@@ -55,6 +70,9 @@ moveUp m x y c nextMove
             nextIsColor = next `elem` ['p', 'o', 'y']
             continue = ['-', 'p', 'o', 'y']
 
+-- called by makeMove, moves the ball down
+-- input : map, ball coordinates, character on which ball is located, next move
+-- output: new map after having moved down
 moveDown :: [String] -> Int -> Int -> Char -> String -> [String]
 moveDown m x y c nextMove
     | valid && nextIsTarget                      = modifiedMap
@@ -74,6 +92,9 @@ moveDown m x y c nextMove
             nextIsColor = next `elem` ['p', 'o', 'y']
             continue = ['-', 'p', 'o', 'y']
 
+-- called by function play (Kodable.hs), executes one move and returns the map in its new state
+-- input : map, move to make, next move to make, character on which ball is located
+-- output: new map after having made the move 
 makeMove :: [String] -> String -> String -> Char -> [String]
 makeMove map move nextMove cell
     | move == "Right" = modifyRight

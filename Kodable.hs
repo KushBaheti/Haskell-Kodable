@@ -8,49 +8,64 @@ import Move
 import Check
 import Solution
 
+-- checks whether the map loaded by user is valid
+-- input : map
+-- output: statement describing cause of invalidity or empty string 
 isValid :: [String] -> String
 isValid map 
-    | numOfBonus /= 3  = "Number of bonuses must be exactly 3."
     | numOfBall /= 1   = "There must be only one ball ('@') on the map."
     | numOfTarget /= 1 = "There must be only one target ('t') on the map."
+    | numOfBonus /= 3  = "Number of bonuses must be exactly 3."
     | otherwise        = ""
         where
-            numOfBonus  = length $ coords map 'b'
             numOfBall   = length $ coords map '@'
             numOfTarget = length $ coords map 't'
-
+            numOfBonus  = length $ coords map 'b'
+                
+-- displays available options
+-- input : none
+-- output: IO
 options :: IO ()
 options = do putStrLn ""
              putStrLn "The available options are:"
-             putStrLn "1.  check         (Checks if ball can reach target.)"
-             putStrLn "2.  solve         (Displays optimal solution path, if one exists.)"
+             putStrLn "1.  load str      (Loads map stored in file named 'str'.)"
+             putStrLn "2.  check         (Checks if ball can reach target.)"
              putStrLn "3.  play          (Accepts moves and tests on map.)"
              putStrLn "4.  play d1 d2 d3 (Same as play, but accepts exactly three moves which can be used as functions during traversal.)"
-             putStrLn "5.  load str      (Loads map stored in file named 'str'.)"
-             putStrLn "6.  hint          (When inputting moves after play has begun, can ask for a hint from current state.)"
-             putStrLn "7.  save fileName (Save the game in it's current state. fileName prefix: 'saved-'; fileName suffix: '.txt')"
+             putStrLn "5.  hint          (When inputting moves after play has begun, can ask for a hint from current state.)"
+             putStrLn "6.  save fileName (Save the game in it's current state. fileName prefix: 'saved-'; fileName suffix: '.txt')"
+             putStrLn "7.  solve         (Displays optimal solution path, if one exists.)"
              putStrLn "8.  create        (Allows user to create maps by entering rows of the map and fileName to store it in. fileName prefix: 'created-'; fileName suffix: '.txt')"
              putStrLn "9.  help          (Show available options.)"
              putStrLn "10. quit          (Quits the game.)"
              putStrLn ""
 
+-- starts the game with a map and can also be used to loads new maps within game.
+-- input : file name
+-- output: IO 
 load :: String -> IO ()
-load s = do contents <- readFile s
-            let map = lines contents
-            putStrLn "Read map successfully!"
-            let isSavedFile = isPrefixOf "saved-" s
-            let valid = isValid map
-            if (isSavedFile || valid == "")
-                then do options
-                        putStrLn "Initial:"
-                        printMap map
-                        start map map
-                else do putStrLn ("Invalid map. " ++ valid)
-                        putStrLn "Quitting game. Please load a new/updated map."
+load s = do if (length s > 4 && ((reverse $ take 4 $ reverse s) == ".txt"))
+                then do contents <- readFile s
+                        let map = lines contents
+                        putStrLn "Read map successfully!"
+                        let isSavedFile = isPrefixOf "saved-" s
+                        let valid = isValid map
+                        if (isSavedFile || valid == "")
+                                then do options
+                                        putStrLn "Initial:"
+                                        printMap map
+                                        start map map
+                                else do putStrLn ("Invalid map. " ++ valid)
+                                        putStrLn "Quitting game. Please load a new/updated map."
+                else do putStrLn "Invalid file type. Please load a '.txt' file."
+                        start [] []
 
+-- creates or overwrites the file located using fileName, and saves a map in it
+-- input : map, name of file
+-- output: IO 
 save :: [String] -> String -> IO ()
 save map fileName = do let contents = unlines map
-                       if (((length fileName > 12 && take 8 fileName == "created-") || (length fileName > 10 && take 6 fileName == "saved-")) && ((reverse $ take 4 $ reverse fileName) == ".txt") )
+                       if (((length fileName > 12 && take 8 fileName == "created-") || (length fileName > 10 && take 6 fileName == "saved-")) && ((reverse $ take 4 $ reverse fileName) == ".txt"))
                            then do writeFile fileName contents
                                    putStrLn "Game saved succesfully!" 
                            else do putStrLn "Invalid file name/type. File name should begin with 'saved-' and end with '.txt'"
@@ -58,6 +73,9 @@ save map fileName = do let contents = unlines map
                                    newFileName <- getLine
                                    save map newFileName 
 
+-- allows user to input rows of a map, to be saved as a custom map created by user
+-- input : map, lenght of row
+-- output: IO
 create :: [String] -> Int -> IO ()
 create map lRow = do if (lRow == -1)
                         then do putStrLn "Enter rows of map one at a time, and finally, enter the file name."
@@ -67,9 +85,15 @@ create map lRow = do if (lRow == -1)
                                 if (row == "")
                                     then do if (length map == 1)
                                                 then putStrLn "The map must have at least one row!"
-                                                else do save (init map) (last map)
+                                                else do if ((length (last map) > 12 && take 8 (last map) == "created-"))
+                                                        then save (init map) (last map)
+                                                        else do putStrLn "Invalid file name. Created map files must have suffix 'created-'."
+                                                                create (init map) lRow
                                     else create (map ++ [row]) lRow
 
+-- returns original character at the coordinates the ball is currently located on
+-- input : map, subsequent map after making one move
+-- output: orignal character at current ball location
 getNewCell :: [String] -> [String] -> Char
 getNewCell m m' = if (newCell == 'b')
                     then '-'
@@ -78,6 +102,9 @@ getNewCell m m' = if (newCell == 'b')
                       (x, y) = head (ballPos m')
                       newCell = (m !! x) !! y
 
+-- tests the moves input by the user on the map
+-- input : map, list of moves input by user, original character at the coordinates the ball is currently located on
+-- output: modified map, stores state after making all moves
 play :: [String] -> [String] -> Char -> [String] -> IO [String]
 play map [] _ _                               = return (map)
 play map [move] cell funcMoves                = if (move == "hint") 
@@ -122,12 +149,18 @@ play map (move:nextMove:moves) cell funcMoves =  do let map' = makeMove map move
                                                                                             return (map')
                                                                             else play map' (nextMove:moves) newCell funcMoves
               
+-- parser for conditionals, called by parseDir
+-- input : direction
+-- output: list of direction after validating Conditional input 
 parseCond :: String -> [String]
 parseCond dir = [[dir !! 5]] ++ condMove
                 where
                     extractedMove = tail (init (drop 7 dir))
                     condMove = if extractedMove `elem` ["Right", "Up", "Down", "Left"] then [extractedMove] else ["-1"]
 
+-- parser for loops, called by parseDir
+-- input : direction
+-- output: list of directions after vaidating & replicating the two directions of the Loop input
 parseLoop :: String -> [String]
 parseLoop dir
     | itr >= 0 && itr <= 5 && valid d1 && valid d2 = concat $ replicate itr ([d1] ++ [d2])
@@ -138,11 +171,17 @@ parseLoop dir
             [idx]      = [y | (x, y) <- zip directions [0..], x == ',']
             d1         = take idx directions
             d2         = drop (idx + 1) directions
-            valid d    = d `elem` ["Right", "Up", "Down", "Left"] || take 4 d1 == "Cond"
+            valid d    = d `elem` ["Right", "Up", "Down", "Left"] || take 4 d == "Cond"
 
+-- parser for function, called by parseDir
+-- input : list of moves input by user, list of Function moves
+-- output: list of moves, with Function replaced by the three Function moves
 parseFunc :: [String] -> [String] -> [String]
 parseFunc moves funcMoves = concatMap (\move -> if (move == "Function") then funcMoves else [move]) moves
 
+-- parser for directions input by user
+-- input : direction
+-- output: list of directions
 parseDir :: String -> [String]
 parseDir dir
     | dir `elem` ["Right", "Up", "Down", "Left", "Function"] = [dir]
@@ -152,6 +191,9 @@ parseDir dir
         where
             color = dir !! 5
 
+-- once the user starts playing, this function enables the user to input directions and stores them as a list
+-- input : map, integer counter (for handling print statements), list of directions, list of three Function moves (or empty list)
+-- output: list of directions input by user
 getDirections :: [String] -> Int -> [String] -> [String] -> IO [String]
 getDirections map num ds funcMoves = do if (num == 0)
                                             then do putStr "First Direction: "
@@ -168,6 +210,9 @@ getDirections map num ds funcMoves = do if (num == 0)
                                                                     then return (ds ++ pDir)
                                                                     else getDirections map (num + 1) (ds ++ pDir) funcMoves
 
+-- validates the Function moves input by user
+-- input : three directions 
+-- output: list of three Function directions
 getFuncMoves :: String -> String -> String -> [String]
 getFuncMoves d1 d2 d3 = if (validD1 && validD2 && validD3) then concat $ map (parseDir) [d1, d2, d3] else ["-1"]
                         where
@@ -175,6 +220,9 @@ getFuncMoves d1 d2 d3 = if (validD1 && validD2 && validD3) then concat $ map (pa
                             validD2 = d2 `elem` ["Right", "Up", "Down", "Left"] || take 4 d2 == "Cond"
                             validD3 = d3 `elem` ["Right", "Up", "Down", "Left"] || take 4 d3 == "Cond"
 
+-- the Kodable command line
+-- input : original map and current map (after having played and made moves, if any)
+-- output: IO       
 start :: [String] -> [String] -> IO ()
 start map currentMap =   do inp <- getLine
                             let inps = words inp 
